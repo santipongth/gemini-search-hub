@@ -189,6 +189,13 @@ function SearchPage() {
             <TabsTrigger value="audio">Audio</TabsTrigger>
           </TabsList>
 
+          {/* Inline failures attached to the type picker (mime mismatch). */}
+          <InlineRuleFailures
+            failures={serverFailures}
+            rules={["mime_type"]}
+            className="max-w-sm mx-auto"
+          />
+
           <TabsContent value="text" className="mt-4">
             <Textarea
               value={text}
@@ -201,9 +208,19 @@ function SearchPage() {
           </TabsContent>
           <TabsContent value="image" className="mt-4">
             <FileDropZone accept="image/*" kind="image" hint="JPG, PNG, WEBP, or GIF · max 8 MB" value={file} onFile={setFile} onClear={() => setFile(null)} />
+            {/* File-size failures rendered next to the image dropzone. */}
+            <InlineRuleFailures
+              failures={serverFailures}
+              rules={["file_size", "data_url_format", "missing_data"]}
+            />
           </TabsContent>
           <TabsContent value="audio" className="mt-4 space-y-3">
             <FileDropZone accept="audio/*" kind="audio" hint="MP3, WAV, M4A, OGG, or WEBM · max 15 MB · 2 min" value={file} onFile={setFile} onClear={() => setFile(null)} />
+            {/* Size + duration failures rendered next to the audio inputs. */}
+            <InlineRuleFailures
+              failures={serverFailures}
+              rules={["file_size", "audio_duration", "data_url_format", "missing_data"]}
+            />
             {!file && <AudioRecorder onFile={setFile} />}
           </TabsContent>
         </Tabs>
