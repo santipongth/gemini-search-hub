@@ -111,6 +111,13 @@ function SearchPage() {
     return validation.ok;
   })();
 
+  // Auto-reset server failures whenever the inputs change so the user can
+  // immediately retry without refreshing. Tracks file identity (data_url),
+  // text query, and the active tab.
+  useEffect(() => {
+    setServerFailures(null);
+  }, [file?.data_url, text, tab]);
+
   const onSearch = async () => {
     if (!canSearch) return;
     setBusy(true);
@@ -125,6 +132,8 @@ function SearchPage() {
         text?: string;
         data_url?: string;
         mime_type?: string;
+        filename?: string;
+        audio_duration_seconds?: number;
       } = {
         query_type: tab as "text" | "image" | "audio",
         modality_filter: "all",
@@ -136,6 +145,10 @@ function SearchPage() {
       } else {
         payload.data_url = file!.data_url;
         payload.mime_type = file!.mime_type;
+        payload.filename = file!.filename;
+        if (typeof file!.duration_seconds === "number") {
+          payload.audio_duration_seconds = file!.duration_seconds;
+        }
       }
       const res = await searchItems({ data: payload });
       setResults(res.results as ItemSummary[]);
