@@ -55,6 +55,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      explain_match: {
+        Args: { item_id: string; query_text: string }
+        Returns: {
+          combined_score: number
+          field: string
+          lexical_rank: number
+          source_text: string
+          trigram_similarity: number
+        }[]
+      }
       match_items: {
         Args: {
           match_count?: number

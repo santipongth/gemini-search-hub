@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { extractTerms, highlightText } from "@/lib/highlight";
+import { WhyItMatched } from "@/components/why-it-matched";
 
 const ItemSearch = z.object({
   q: z.string().optional(),
@@ -150,6 +151,15 @@ function ItemPage() {
           queryType={search.qt}
           query={search.q}
           itemModality={item.modality}
+        />
+      )}
+
+      {search.q && search.q.trim().length > 0 && (
+        <WhyItMatched
+          itemId={item.id}
+          itemModality={item.modality}
+          queryText={search.q}
+          queryType={search.qt}
         />
       )}
 
