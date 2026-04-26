@@ -97,6 +97,10 @@ function SearchPage() {
   const [hasSearched, setHasSearched] = useState(false);
   const [serverFailures, setServerFailures] = useState<ValidationFailure[] | null>(null);
   const [sortBy, setSortBy] = useState<"similarity" | "newest" | "oldest" | "title">("similarity");
+  // Track the in-flight request so the user can cancel and immediately
+  // re-enable inputs. The server still runs to completion, but the client
+  // discards the response.
+  const requestIdRef = useRef(0);
 
   const fileKind = tab === "image" ? "image" : tab === "audio" ? "audio" : null;
   const validation = useMemo(
