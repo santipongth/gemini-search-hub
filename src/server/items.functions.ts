@@ -4,9 +4,12 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { describeImage, transcribeAudio } from "./ai.server";
 import {
   validateUploadedFile,
+  makeAudioDurationFailure,
+  MAX_AUDIO_SECONDS,
   type ValidationErrorPayload,
   type ValidationFailure,
 } from "@/lib/file-validation";
+import { parseAudioDurationSeconds } from "./audio-duration.server";
 
 const Modality = z.enum(["text", "image", "audio"]);
 
