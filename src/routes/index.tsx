@@ -1,12 +1,20 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { searchItems } from "@/server/items.functions";
 import { ItemCard, type ItemSummary } from "@/components/item-card";
-import { FileDropZone, AudioRecorder, type FilePayload } from "@/components/media-input";
-import { Search, Sparkles, Loader2 } from "lucide-react";
+import {
+  FileDropZone,
+  AudioRecorder,
+  type FilePayload,
+  ALLOWED_IMAGE_MIME,
+  ALLOWED_AUDIO_MIME,
+  MAX_IMAGE_BYTES,
+  MAX_AUDIO_BYTES,
+} from "@/components/media-input";
+import { Search, Sparkles, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/")({
@@ -19,6 +27,40 @@ export const Route = createFileRoute("/")({
   component: SearchPage,
 });
 
+function formatBytes(n: number) {
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / (1024 * 1024)).toFixed(2)} MB`;
+}
+
+// Approximate decoded byte length from a data URL (base64 = 4/3 of bytes).
+function dataUrlByteLength(dataUrl: string): number {
+  const i = dataUrl.indexOf(",");
+  if (i < 0) return 0;
+  const b64 = dataUrl.slice(i + 1);
+  const padding = b64.endsWith("==") ? 2 : b64.endsWith("=") ? 1 : 0;
+  return Math.floor((b64.length * 3) / 4) - padding;
+}
+
+type Validation = {
+  ok: boolean;
+  size: number;
+  maxSize: number;
+  mimeOk: boolean;
+  sizeOk: boolean;
+  allowed: readonly string[];
+};
+
+function validate(file: FilePayload | null, kind: "image" | "audio"): Validation | null {
+  if (!file) return null;
+  const allowed = kind === "image" ? ALLOWED_IMAGE_MIME : ALLOWED_AUDIO_MIME;
+  const maxSize = kind === "image" ? MAX_IMAGE_BYTES : MAX_AUDIO_BYTES;
+  const size = dataUrlByteLength(file.data_url);
+  const mimeOk = allowed.includes(file.mime_type);
+  const sizeOk = size <= maxSize;
+  return { ok: mimeOk && sizeOk, size, maxSize, mimeOk, sizeOk, allowed };
+}
+
 function SearchPage() {
   const [tab, setTab] = useState("text");
   const [text, setText] = useState("");
@@ -28,7 +70,21 @@ function SearchPage() {
   const [busy, setBusy] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
 
+  const fileKind = tab === "image" ? "image" : tab === "audio" ? "audio" : null;
+  const validation = useMemo(
+    () => (fileKind ? validate(file, fileKind) : null),
+    [file, fileKind],
+  );
+
+  const canSearch = (() => {
+    if (busy) return false;
+    if (tab === "text") return text.trim().length > 0;
+    if (!file || !validation) return false;
+    return validation.ok;
+  })();
+
   const onSearch = async () => {
+    if (!canSearch) return;
     setBusy(true);
     setInterpreted(null);
     try {
@@ -47,12 +103,10 @@ function SearchPage() {
         limit: 24,
       };
       if (tab === "text") {
-        if (!text.trim()) { toast.error("Type a query"); setBusy(false); return; }
         payload.text = text;
       } else {
-        if (!file) { toast.error("Add a file"); setBusy(false); return; }
-        payload.data_url = file.data_url;
-        payload.mime_type = file.mime_type;
+        payload.data_url = file!.data_url;
+        payload.mime_type = file!.mime_type;
       }
       const res = await searchItems({ data: payload });
       setResults(res.results as ItemSummary[]);
@@ -79,9 +133,9 @@ function SearchPage() {
         </p>
       </div>
 
-      <div className="rounded-2xl border border-border bg-card shadow-sm p-4 sm:p-6 space-y-4">
+      <div className="rounded-2xl border border-border bg-card shadow-sm p-4 sm:p-6 space-y-5">
         <Tabs value={tab} onValueChange={(v) => { setTab(v); setFile(null); }}>
-          <TabsList className="grid grid-cols-3 w-full max-w-sm">
+          <TabsList className="grid grid-cols-3 w-full max-w-sm mx-auto">
             <TabsTrigger value="text">Text</TabsTrigger>
             <TabsTrigger value="image">Image</TabsTrigger>
             <TabsTrigger value="audio">Audio</TabsTrigger>
@@ -106,11 +160,32 @@ function SearchPage() {
           </TabsContent>
         </Tabs>
 
-        <div className="flex justify-end">
-          <Button onClick={onSearch} disabled={busy} size="lg" className="gap-2">
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-            Search
+        {fileKind && validation && (
+          <ValidationSummary kind={fileKind} file={file!} v={validation} />
+        )}
+
+        <div className="flex flex-col items-center gap-2 pt-1">
+          <Button
+            onClick={onSearch}
+            disabled={!canSearch}
+            size="lg"
+            className="gap-2 px-10 h-12 rounded-full text-base font-medium bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-lg shadow-primary/25 hover:shadow-primary/40 hover:opacity-95 transition disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed"
+          >
+            {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <Search className="h-5 w-5" />}
+            {busy ? "Searching..." : "Search"}
           </Button>
+          {!canSearch && !busy && (
+            <p className="text-xs text-muted-foreground">
+              {tab === "text"
+                ? "Type a query to search"
+                : !file
+                  ? `Add ${tab === "image" ? "an image" : "audio"} to search`
+                  : "Fix the issues above to enable search"}
+            </p>
+          )}
+          {tab === "text" && (
+            <p className="text-xs text-muted-foreground">Tip: press ⌘/Ctrl + Enter to search</p>
+          )}
         </div>
       </div>
 
@@ -143,6 +218,90 @@ function SearchPage() {
             {results.map((r) => <ItemCard key={r.id} item={r} />)}
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+function ValidationSummary({
+  kind,
+  file,
+  v,
+}: {
+  kind: "image" | "audio";
+  file: FilePayload;
+  v: Validation;
+}) {
+  const pct = Math.min(100, (v.size / v.maxSize) * 100);
+  const sizeColor = v.sizeOk ? (pct > 80 ? "bg-amber-500" : "bg-emerald-500") : "bg-destructive";
+  return (
+    <div
+      className={`rounded-xl border p-3 text-sm transition ${
+        v.ok
+          ? "border-emerald-500/30 bg-emerald-500/5"
+          : "border-destructive/40 bg-destructive/5"
+      }`}
+    >
+      <div className="flex items-center gap-2 font-medium">
+        {v.ok ? (
+          <>
+            <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+            <span>Ready to search</span>
+          </>
+        ) : (
+          <>
+            <AlertCircle className="h-4 w-4 text-destructive" />
+            <span>File needs attention</span>
+          </>
+        )}
+      </div>
+
+      <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {/* Mime type */}
+        <div className="flex items-start gap-2">
+          {v.mimeOk ? (
+            <CheckCircle2 className="h-4 w-4 text-emerald-600 mt-0.5 shrink-0" />
+          ) : (
+            <AlertCircle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
+          )}
+          <div className="min-w-0">
+            <div className="text-xs text-muted-foreground">Type</div>
+            <div className="font-mono text-xs truncate">{file.mime_type || "unknown"}</div>
+            {!v.mimeOk && (
+              <div className="text-xs text-destructive mt-0.5">
+                Allowed: {kind === "image" ? "JPG, PNG, WEBP, GIF" : "MP3, WAV, M4A, OGG, WEBM"}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Size */}
+        <div className="flex items-start gap-2">
+          {v.sizeOk ? (
+            <CheckCircle2 className="h-4 w-4 text-emerald-600 mt-0.5 shrink-0" />
+          ) : (
+            <AlertCircle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
+          )}
+          <div className="flex-1 min-w-0">
+            <div className="text-xs text-muted-foreground flex justify-between">
+              <span>Size</span>
+              <span>
+                {formatBytes(v.size)} / {formatBytes(v.maxSize)}
+              </span>
+            </div>
+            <div className="mt-1 h-1.5 w-full rounded-full bg-muted overflow-hidden">
+              <div
+                className={`h-full ${sizeColor} transition-all`}
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+            {!v.sizeOk && (
+              <div className="text-xs text-destructive mt-0.5">
+                Exceeds max by {formatBytes(v.size - v.maxSize)}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
