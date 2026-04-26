@@ -211,12 +211,14 @@ export function AudioRecorder({ onFile }: { onFile: (f: FilePayload) => void }) 
         toast.error(`Recording is ${(blob.size / 1024 / 1024).toFixed(1)} MB. Max 15 MB.`);
         return;
       }
+      const elapsed = (Date.now() - startedAtRef.current) / 1000;
       const reader = new FileReader();
       reader.onload = () => {
         onFile({
           data_url: reader.result as string,
           mime_type: blob.type,
           filename: `recording-${Date.now()}.webm`,
+          duration_seconds: elapsed,
         });
       };
       reader.readAsDataURL(blob);
