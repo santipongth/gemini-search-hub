@@ -179,11 +179,11 @@ function SearchPage() {
       </div>
 
       <div className="rounded-2xl border border-border bg-card shadow-sm p-4 sm:p-6 space-y-5">
-        <Tabs value={tab} onValueChange={(v) => { setTab(v); setFile(null); }}>
+        <Tabs value={tab} onValueChange={(v) => { if (busy) return; setTab(v); setFile(null); }}>
           <TabsList className="grid grid-cols-3 w-full max-w-sm mx-auto">
-            <TabsTrigger value="text">Text</TabsTrigger>
-            <TabsTrigger value="image">Image</TabsTrigger>
-            <TabsTrigger value="audio">Audio</TabsTrigger>
+            <TabsTrigger value="text" disabled={busy}>Text</TabsTrigger>
+            <TabsTrigger value="image" disabled={busy}>Image</TabsTrigger>
+            <TabsTrigger value="audio" disabled={busy}>Audio</TabsTrigger>
           </TabsList>
 
           {/* Inline failures attached to the type picker (mime mismatch). */}
@@ -197,9 +197,11 @@ function SearchPage() {
             <Textarea
               value={text}
               onChange={(e) => setText(e.target.value)}
-              placeholder="e.g., a peaceful sunset over mountains, or rainy day jazz..."
+              placeholder={busy ? "Searching..." : "e.g., a peaceful sunset over mountains, or rainy day jazz..."}
               rows={3}
-              className="resize-none text-base"
+              disabled={busy}
+              aria-busy={busy}
+              className="resize-none text-base disabled:opacity-60 disabled:cursor-not-allowed"
               onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) onSearch(); }}
             />
           </TabsContent>
