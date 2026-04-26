@@ -36,7 +36,15 @@ function SearchPage() {
     setBusy(true);
     setInterpreted(null);
     try {
-      const payload: Parameters<typeof searchItems>[0] extends { data: infer D } ? D : never = {
+      const payload: {
+        query_type: "text" | "image" | "audio";
+        modality_filter: "all" | "text" | "image" | "audio";
+        min_similarity: number;
+        limit: number;
+        text?: string;
+        data_url?: string;
+        mime_type?: string;
+      } = {
         query_type: tab as "text" | "image" | "audio",
         modality_filter: filter,
         min_similarity: minSim,
