@@ -412,3 +412,75 @@ function ServerFailurePanel({
     </div>
   );
 }
+
+type SortKey = "similarity" | "newest" | "oldest" | "title";
+
+function sortResults(results: ItemSummary[], sortBy: SortKey): ItemSummary[] {
+  const arr = [...results];
+  switch (sortBy) {
+    case "similarity":
+      return arr.sort((a, b) => (b.similarity ?? -1) - (a.similarity ?? -1));
+    case "newest":
+      return arr.sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? ""));
+    case "oldest":
+      return arr.sort((a, b) => (a.created_at ?? "").localeCompare(b.created_at ?? ""));
+    case "title":
+      return arr.sort((a, b) =>
+        (a.title ?? "Untitled").localeCompare(b.title ?? "Untitled"),
+      );
+  }
+}
+
+function SortToolbar({
+  count,
+  sortBy,
+  onChange,
+  hasSimilarity,
+}: {
+  count: number;
+  sortBy: SortKey;
+  onChange: (s: SortKey) => void;
+  hasSimilarity: boolean;
+}) {
+  const options: Array<{ key: SortKey; label: string; disabled?: boolean }> = [
+    { key: "similarity", label: "Best match", disabled: !hasSimilarity },
+    { key: "newest", label: "Newest" },
+    { key: "oldest", label: "Oldest" },
+    { key: "title", label: "Title" },
+  ];
+
+  return (
+    <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+      <div className="text-sm text-muted-foreground">
+        <span className="font-medium text-foreground">{count}</span>{" "}
+        result{count === 1 ? "" : "s"}
+      </div>
+      <div className="flex items-center gap-2">
+        <ArrowDownWideNarrow className="h-3.5 w-3.5 text-muted-foreground" />
+        <span className="text-xs text-muted-foreground mr-1">Sort by</span>
+        <div className="inline-flex rounded-full border border-border bg-card p-0.5 text-xs">
+          {options.map((o) => {
+            const active = sortBy === o.key;
+            return (
+              <button
+                key={o.key}
+                disabled={o.disabled}
+                onClick={() => onChange(o.key)}
+                className={`px-3 py-1.5 rounded-full transition ${
+                  active
+                    ? "bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-sm"
+                    : o.disabled
+                      ? "text-muted-foreground/50 cursor-not-allowed"
+                      : "text-muted-foreground hover:text-foreground"
+                }`}
+                title={o.disabled ? "Similarity scores not available" : undefined}
+              >
+                {o.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
