@@ -345,3 +345,51 @@ function ValidationSummary({
     </div>
   );
 }
+
+function ServerFailurePanel({
+  failures,
+  onDismiss,
+}: {
+  failures: ValidationFailure[];
+  onDismiss: () => void;
+}) {
+  return (
+    <div className="rounded-xl border border-destructive/40 bg-destructive/5 p-4 text-sm">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-2 font-medium text-destructive">
+          <AlertCircle className="h-4 w-4" />
+          Server rejected the file
+        </div>
+        <button
+          onClick={onDismiss}
+          className="text-xs text-muted-foreground hover:text-foreground"
+        >
+          Dismiss
+        </button>
+      </div>
+      <ul className="mt-3 space-y-2">
+        {failures.map((f, i) => (
+          <li key={i} className="flex gap-3">
+            <span className="inline-flex shrink-0 items-center rounded-md border border-destructive/30 bg-destructive/10 px-2 py-0.5 text-xs font-mono font-medium text-destructive">
+              {RULE_LABELS[f.rule] ?? f.rule}
+            </span>
+            <div className="min-w-0">
+              <div className="text-foreground">{f.message}</div>
+              {f.details?.allowed && (
+                <div className="text-xs text-muted-foreground mt-0.5">
+                  Allowed: {f.details.allowed.join(", ")}
+                </div>
+              )}
+              {f.details?.actual !== undefined && f.details?.limit !== undefined && (
+                <div className="text-xs text-muted-foreground mt-0.5">
+                  Got <span className="font-mono">{f.details.actual}</span>, limit{" "}
+                  <span className="font-mono">{f.details.limit}</span>
+                </div>
+              )}
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
