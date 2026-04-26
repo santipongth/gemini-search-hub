@@ -30,6 +30,12 @@ export function UploadDialog({ onAdded }: { onAdded?: () => void }) {
     setServerFailures(null);
   };
 
+  // Auto-reset server failures when the active file or tab changes so the
+  // user can retry the upload immediately without dismissing anything.
+  useEffect(() => {
+    setServerFailures(null);
+  }, [file?.data_url, tab]);
+
   const submit = async () => {
     setBusy(true);
     setServerFailures(null);
@@ -47,6 +53,7 @@ export function UploadDialog({ onAdded }: { onAdded?: () => void }) {
             data_url: file.data_url,
             mime_type: file.mime_type,
             filename: file.filename,
+            audio_duration_seconds: file.duration_seconds,
           },
         });
       }
