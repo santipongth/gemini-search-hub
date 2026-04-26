@@ -243,13 +243,11 @@ function SearchPage() {
             {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <Search className="h-5 w-5" />}
             {busy ? "Searching..." : "Search"}
           </Button>
-          {!canSearch && !busy && (
+          {!canSearch && !busy && tab !== "text" && (
             <p className="text-xs text-muted-foreground">
-              {tab === "text"
-                ? "Type a query to search"
-                : !file
-                  ? `Add ${tab === "image" ? "an image" : "audio"} to search`
-                  : "Fix the issues above to enable search"}
+              {!file
+                ? `Add ${tab === "image" ? "an image" : "audio"} to search`
+                : "Fix the issues above to enable search"}
             </p>
           )}
           {tab === "text" && (
