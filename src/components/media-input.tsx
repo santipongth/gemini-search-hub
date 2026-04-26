@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Mic, Square, Upload, X } from "lucide-react";
+import { Mic, Square, Upload, X, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import {
