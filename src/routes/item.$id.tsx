@@ -154,6 +154,15 @@ function ItemPage() {
         />
       )}
 
+      {search.q && search.q.trim().length > 0 && (
+        <WhyItMatched
+          itemId={item.id}
+          itemModality={item.modality}
+          queryText={search.q}
+          queryType={search.qt}
+        />
+      )}
+
       {similar && (
         <div className="mt-10">
           <h2 className="text-xl font-semibold mb-4">Similar items</h2>
