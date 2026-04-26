@@ -406,9 +406,14 @@ function ServerFailurePanel({
   return (
     <div className="rounded-xl border border-destructive/40 bg-destructive/5 p-4 text-sm">
       <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-2 font-medium text-destructive">
-          <AlertCircle className="h-4 w-4" />
-          Server rejected the file
+        <div className="flex items-center gap-2 font-medium text-destructive min-w-0">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          <span>Server rejected the file</span>
+          {failures[0]?.details?.filename && (
+            <span className="text-xs font-normal text-muted-foreground font-mono truncate">
+              · {failures[0].details.filename}
+            </span>
+          )}
         </div>
         <button
           onClick={onDismiss}
