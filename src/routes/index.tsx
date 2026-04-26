@@ -95,6 +95,7 @@ function SearchPage() {
   const [busy, setBusy] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const [serverFailures, setServerFailures] = useState<ValidationFailure[] | null>(null);
+  const [sortBy, setSortBy] = useState<"similarity" | "newest" | "oldest" | "title">("similarity");
 
   const fileKind = tab === "image" ? "image" : tab === "audio" ? "audio" : null;
   const validation = useMemo(
