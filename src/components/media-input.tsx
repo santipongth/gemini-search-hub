@@ -2,6 +2,23 @@ import { useState, useRef } from "react";
 import { Mic, Square, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import {
+  ALLOWED_IMAGE_MIME,
+  ALLOWED_AUDIO_MIME,
+  MAX_IMAGE_BYTES,
+  MAX_AUDIO_BYTES,
+  MAX_AUDIO_SECONDS,
+  formatBytes,
+} from "@/lib/file-validation";
+
+// Re-export so existing imports from "@/components/media-input" still work.
+export {
+  ALLOWED_IMAGE_MIME,
+  ALLOWED_AUDIO_MIME,
+  MAX_IMAGE_BYTES,
+  MAX_AUDIO_BYTES,
+  MAX_AUDIO_SECONDS,
+};
 
 export type FilePayload = {
   data_url: string;
@@ -9,30 +26,6 @@ export type FilePayload = {
   filename: string;
 };
 
-// Limits
-export const MAX_IMAGE_BYTES = 8 * 1024 * 1024; // 8 MB
-export const MAX_AUDIO_BYTES = 15 * 1024 * 1024; // 15 MB
-export const MAX_AUDIO_SECONDS = 120; // 2 minutes
-
-export const ALLOWED_IMAGE_MIME = ["image/jpeg", "image/png", "image/webp", "image/gif"];
-export const ALLOWED_AUDIO_MIME = [
-  "audio/mpeg", // mp3
-  "audio/mp3",
-  "audio/wav",
-  "audio/wave",
-  "audio/x-wav",
-  "audio/webm",
-  "audio/ogg",
-  "audio/mp4", // m4a
-  "audio/x-m4a",
-  "audio/aac",
-];
-
-function formatBytes(n: number) {
-  if (n < 1024) return `${n} B`;
-  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
-  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
-}
 
 async function getAudioDuration(dataUrl: string): Promise<number> {
   return new Promise((resolve, reject) => {
