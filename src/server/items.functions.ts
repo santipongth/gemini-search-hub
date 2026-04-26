@@ -113,12 +113,18 @@ export const searchItems = createServerFn({ method: "POST" })
     if (data.query_type === "text") {
       if (!data.text?.trim()) throw new Error("Query text required");
       queryText = data.text.trim();
-    } else if (data.query_type === "image") {
-      if (!data.data_url) throw new Error("Image required");
-      queryText = await describeImage(data.data_url);
     } else {
-      if (!data.data_url || !data.mime_type) throw new Error("Audio required");
-      queryText = await transcribeAudio(data.data_url, data.mime_type);
+      const kind = data.query_type; // "image" | "audio"
+      const failures = validateUploadedFile({
+        data_url: data.data_url,
+        mime_type: data.mime_type,
+        kind,
+      });
+      if (failures.length > 0) throwValidationError(failures);
+      queryText =
+        kind === "image"
+          ? await describeImage(data.data_url!)
+          : await transcribeAudio(data.data_url!, data.mime_type!);
     }
 
     const { data: rows, error } = await supabaseAdmin.rpc("match_items", {
