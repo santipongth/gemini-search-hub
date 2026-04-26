@@ -101,15 +101,18 @@ export function FileDropZone({
       return;
     }
 
-    const dataUrl: string = await new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = () => reject(new Error("Could not read file"));
-      reader.readAsDataURL(file);
-    }).catch((e) => {
+    let dataUrl = "";
+    try {
+      dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = () => reject(new Error("Could not read file"));
+        reader.readAsDataURL(file);
+      });
+    } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not read file");
-      return "";
-    });
+      return;
+    }
     if (!dataUrl) return;
 
     if (kind === "audio") {
