@@ -30,13 +30,16 @@ export function UploadDialog({ onAdded }: { onAdded?: () => void }) {
   const [text, setText] = useState("");
   const [file, setFile] = useState<FilePayload | null>(null);
   const [busy, setBusy] = useState(false);
+  const [serverFailures, setServerFailures] = useState<ValidationFailure[] | null>(null);
 
   const reset = () => {
     setTitle(""); setDesc(""); setText(""); setFile(null); setTab("text");
+    setServerFailures(null);
   };
 
   const submit = async () => {
     setBusy(true);
+    setServerFailures(null);
     try {
       if (tab === "text") {
         if (!text.trim()) throw new Error("Enter some text");
@@ -59,7 +62,21 @@ export function UploadDialog({ onAdded }: { onAdded?: () => void }) {
       setOpen(false);
       onAdded?.();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to add");
+      let parsed: ValidationFailure[] | null = null;
+      if (e instanceof Error) {
+        try {
+          const obj: unknown = JSON.parse(e.message);
+          if (isValidationErrorPayload(obj)) parsed = obj.failures;
+        } catch {
+          // not JSON
+        }
+      }
+      if (parsed) {
+        setServerFailures(parsed);
+        toast.error("File rejected — see details below");
+      } else {
+        toast.error(e instanceof Error ? e.message : "Failed to add");
+      }
     } finally {
       setBusy(false);
     }
