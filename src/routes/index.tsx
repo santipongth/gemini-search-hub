@@ -169,6 +169,15 @@ function SearchPage() {
 
   return (
     <div className="container mx-auto px-6 py-12 max-w-5xl">
+      <div className="text-center space-y-3 mb-10">
+        <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs text-muted-foreground">
+          <Sparkles className="h-3 w-3" /> Powered by Gemini embeddings
+        </div>
+        <p className="text-muted-foreground max-w-xl mx-auto">
+          Type a question, drop an image, or record audio. Lumen finds semantically similar items across every modality.
+        </p>
+      </div>
+
       <div className="rounded-2xl border border-border bg-card shadow-sm p-4 sm:p-6 space-y-5">
         <Tabs value={tab} onValueChange={(v) => { setTab(v); setFile(null); }}>
           <TabsList className="grid grid-cols-3 w-full max-w-sm mx-auto">
