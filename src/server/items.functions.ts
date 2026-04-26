@@ -181,6 +181,11 @@ export const deleteItem = createServerFn({ method: "POST" })
 export const getPublicUrl = createServerFn({ method: "GET" })
   .inputValidator((input: unknown) => z.object({ path: z.string() }).parse(input))
   .handler(async ({ data }) => {
-    const { data: u } = supabaseAdmin.storage.from("library").getPublicUrl(data.path);
-    return { url: u.publicUrl };
+    // Bucket is private; issue a short-lived signed URL.
+    const { data: signed, error } = await supabaseAdmin
+      .storage
+      .from("library")
+      .createSignedUrl(data.path, 60 * 60); // 1 hour
+    if (error || !signed) throw new Error(error?.message ?? "Failed to sign URL");
+    return { url: signed.signedUrl };
   });
