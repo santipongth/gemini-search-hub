@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
@@ -13,14 +13,7 @@ import {
   isValidationErrorPayload,
   type ValidationFailure,
 } from "@/lib/file-validation";
-
-const RULE_LABELS: Record<ValidationFailure["rule"], string> = {
-  mime_type: "File type",
-  file_size: "File size",
-  audio_duration: "Audio duration",
-  data_url_format: "File encoding",
-  missing_data: "Missing data",
-};
+import { InlineRuleFailures, RULE_LABELS } from "@/components/inline-rule-failures";
 
 export function UploadDialog({ onAdded }: { onAdded?: () => void }) {
   const [open, setOpen] = useState(false);
