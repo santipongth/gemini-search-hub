@@ -56,7 +56,7 @@ function validate(file: FilePayload | null, kind: "image" | "audio"): Validation
   const allowed = kind === "image" ? ALLOWED_IMAGE_MIME : ALLOWED_AUDIO_MIME;
   const maxSize = kind === "image" ? MAX_IMAGE_BYTES : MAX_AUDIO_BYTES;
   const size = dataUrlByteLength(file.data_url);
-  const mimeOk = allowed.includes(file.mime_type);
+  const mimeOk = (allowed as readonly string[]).includes(file.mime_type);
   const sizeOk = size <= maxSize;
   return { ok: mimeOk && sizeOk, size, maxSize, mimeOk, sizeOk, allowed };
 }
