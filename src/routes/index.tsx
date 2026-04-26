@@ -14,8 +14,32 @@ import {
   MAX_IMAGE_BYTES,
   MAX_AUDIO_BYTES,
 } from "@/components/media-input";
+import {
+  isValidationErrorPayload,
+  type ValidationFailure,
+  type ValidationErrorPayload,
+} from "@/lib/file-validation";
 import { Search, Sparkles, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
+
+// Try to parse a server function error into structured validation failures.
+function parseServerError(err: unknown): ValidationErrorPayload | null {
+  if (!(err instanceof Error)) return null;
+  try {
+    const parsed: unknown = JSON.parse(err.message);
+    return isValidationErrorPayload(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+const RULE_LABELS: Record<ValidationFailure["rule"], string> = {
+  mime_type: "File type",
+  file_size: "File size",
+  audio_duration: "Audio duration",
+  data_url_format: "File encoding",
+  missing_data: "Missing data",
+};
 
 export const Route = createFileRoute("/")({
   head: () => ({
