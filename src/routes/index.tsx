@@ -250,9 +250,6 @@ function SearchPage() {
                 : "Fix the issues above to enable search"}
             </p>
           )}
-          {tab === "text" && (
-            <p className="text-xs text-muted-foreground">Tip: press ⌘/Ctrl + Enter to search</p>
-          )}
         </div>
       </div>
 
