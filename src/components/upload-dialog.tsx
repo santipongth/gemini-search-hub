@@ -146,6 +146,25 @@ export function UploadDialog({ onAdded }: { onAdded?: () => void }) {
           </div>
         </Tabs>
 
+        {serverFailures && serverFailures.length > 0 && (
+          <div className="mt-4 rounded-xl border border-destructive/40 bg-destructive/5 p-3 text-sm">
+            <div className="flex items-center gap-2 font-medium text-destructive">
+              <AlertCircle className="h-4 w-4" />
+              Server rejected the file
+            </div>
+            <ul className="mt-2 space-y-1.5">
+              {serverFailures.map((f, i) => (
+                <li key={i} className="flex gap-2">
+                  <span className="inline-flex shrink-0 items-center rounded-md border border-destructive/30 bg-destructive/10 px-2 py-0.5 text-xs font-mono font-medium text-destructive">
+                    {RULE_LABELS[f.rule] ?? f.rule}
+                  </span>
+                  <span className="text-foreground">{f.message}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         <Button onClick={submit} disabled={busy} className="mt-4 gap-2">
           {busy && <Loader2 className="h-4 w-4 animate-spin" />}
           {busy ? "Embedding..." : "Add to library"}
