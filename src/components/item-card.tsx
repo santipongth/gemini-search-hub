@@ -15,6 +15,7 @@ export type ItemSummary = {
   storage_path: string | null;
   mime_type: string | null;
   similarity?: number;
+  created_at?: string;
 };
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
