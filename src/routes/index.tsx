@@ -329,7 +329,9 @@ function SearchPage() {
               ))}
             </div>
           </>
-        ) : null}
+        ) : (
+          <MultimodalEmptyState activeTab={tab as "text" | "image" | "audio"} />
+        )}
       </div>
     </div>
   );
