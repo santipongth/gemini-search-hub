@@ -52,14 +52,14 @@ type Kind = "image" | "audio";
 
 async function validateFile(file: File, kind: Kind): Promise<string | null> {
   if (kind === "image") {
-    if (!ALLOWED_IMAGE_MIME.includes(file.type)) {
+    if (!(ALLOWED_IMAGE_MIME as readonly string[]).includes(file.type)) {
       return `Unsupported image type "${file.type || "unknown"}". Use JPG, PNG, WEBP, or GIF.`;
     }
     if (file.size > MAX_IMAGE_BYTES) {
       return `Image is ${formatBytes(file.size)}. Max ${formatBytes(MAX_IMAGE_BYTES)}.`;
     }
   } else {
-    if (file.type && !ALLOWED_AUDIO_MIME.includes(file.type)) {
+    if (file.type && !(ALLOWED_AUDIO_MIME as readonly string[]).includes(file.type)) {
       return `Unsupported audio type "${file.type}". Use MP3, WAV, M4A, OGG, or WEBM.`;
     }
     if (file.size > MAX_AUDIO_BYTES) {
