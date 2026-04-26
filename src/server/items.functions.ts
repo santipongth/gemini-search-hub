@@ -168,6 +168,8 @@ const SearchInput = z.object({
   text: z.string().max(2000).optional(),
   data_url: z.string().optional(),
   mime_type: z.string().max(100).optional(),
+  filename: z.string().max(200).optional(),
+  audio_duration_seconds: z.number().min(0).max(60 * 60).optional(),
   modality_filter: z.union([Modality, z.literal("all")]).default("all"),
   min_similarity: z.number().min(0).max(1).default(0),
   limit: z.number().int().min(1).max(50).default(20),
@@ -182,12 +184,15 @@ export const searchItems = createServerFn({ method: "POST" })
       queryText = data.text.trim();
     } else {
       const kind = data.query_type; // "image" | "audio"
-      const failures = validateUploadedFile({
+      // Authoritative server-side validation, including audio duration
+      // (parsed from the file bytes when format is recognized).
+      runServerFileValidation({
         data_url: data.data_url,
         mime_type: data.mime_type,
         kind,
+        filename: data.filename,
+        duration_hint: data.audio_duration_seconds,
       });
-      if (failures.length > 0) throwValidationError(failures);
       queryText =
         kind === "image"
           ? await describeImage(data.data_url!)
