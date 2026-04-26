@@ -18,10 +18,10 @@ export type Database = {
         Row: {
           created_at: string
           description: string | null
-          embedding: string | null
           id: string
           mime_type: string | null
           modality: string
+          search_text: string | null
           storage_path: string | null
           text_content: string | null
           title: string | null
@@ -29,10 +29,10 @@ export type Database = {
         Insert: {
           created_at?: string
           description?: string | null
-          embedding?: string | null
           id?: string
           mime_type?: string | null
           modality: string
+          search_text?: string | null
           storage_path?: string | null
           text_content?: string | null
           title?: string | null
@@ -40,10 +40,10 @@ export type Database = {
         Update: {
           created_at?: string
           description?: string | null
-          embedding?: string | null
           id?: string
           mime_type?: string | null
           modality?: string
+          search_text?: string | null
           storage_path?: string | null
           text_content?: string | null
           title?: string | null
@@ -60,7 +60,7 @@ export type Database = {
           match_count?: number
           min_similarity?: number
           modality_filter?: string
-          query_embedding: string
+          query_text: string
         }
         Returns: {
           created_at: string
@@ -74,6 +74,8 @@ export type Database = {
           title: string
         }[]
       }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
     }
     Enums: {
       [_ in never]: never
