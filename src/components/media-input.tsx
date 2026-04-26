@@ -120,15 +120,17 @@ export function FileDropZone({
         const duration = await getAudioDuration(dataUrl);
         durationSeconds = duration;
         if (duration > MAX_AUDIO_SECONDS) {
-          toast.error(
-            `Audio is ${duration.toFixed(0)}s. Max ${MAX_AUDIO_SECONDS}s (${Math.floor(
-              MAX_AUDIO_SECONDS / 60,
-            )} min).`,
-          );
+          const msg = `Audio is ${duration.toFixed(0)}s. Max ${MAX_AUDIO_SECONDS}s (${Math.floor(
+            MAX_AUDIO_SECONDS / 60,
+          )} min).`;
+          setInlineError(msg);
+          toast.error(msg);
           return;
         }
       } catch {
-        toast.error("Could not read audio duration. Try a different file.");
+        const msg = "Could not read audio duration. Try a different file.";
+        setInlineError(msg);
+        toast.error(msg);
         return;
       }
     }
