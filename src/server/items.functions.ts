@@ -286,3 +286,101 @@ export const getPublicUrl = createServerFn({ method: "GET" })
     if (error || !signed) throw new Error(error?.message ?? "Failed to sign URL");
     return { url: signed.signedUrl };
   });
+
+// ---------- Explain match: per-field similarity breakdown ----------
+
+const STOPWORDS = new Set([
+  "the","a","an","and","or","but","of","in","on","at","to","for","with","by","from",
+  "is","are","was","were","be","been","being","it","this","that","these","those","as",
+  "i","me","my","you","your","we","our","they","them","their","what","which","who",
+  "whom","where","when","why","how","all","any","both","each","few","more","most",
+  "other","some","such","no","not","only","own","same","so","than","too","very","can",
+  "will","just","don","should","now","about",
+]);
+
+function tokenize(s: string): string[] {
+  return s
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s'-]/gu, " ")
+    .split(/\s+/)
+    .filter((t) => t.length > 1 && !STOPWORDS.has(t));
+}
+
+// Rank query tokens by how often they appear across the item's source fields.
+// Uses a tiny IDF-style boost so common-but-shared tokens still surface.
+function rankContributingTokens(
+  queryTokens: string[],
+  fields: Array<{ field: string; source_text: string }>,
+): Array<{ token: string; weight: number; fields: string[] }> {
+  const out: Array<{ token: string; weight: number; fields: string[] }> = [];
+  const seen = new Set<string>();
+  for (const t of queryTokens) {
+    if (seen.has(t)) continue;
+    seen.add(t);
+    let weight = 0;
+    const matchedFields: string[] = [];
+    for (const f of fields) {
+      const text = f.source_text.toLowerCase();
+      if (!text) continue;
+      // Count occurrences of the token in this field.
+      let count = 0;
+      let idx = text.indexOf(t);
+      while (idx !== -1) {
+        count++;
+        idx = text.indexOf(t, idx + t.length);
+      }
+      if (count > 0) {
+        matchedFields.push(f.field);
+        // Title/description carry intent; AI text is bulk content. Weight title heaviest.
+        const fieldBoost =
+          f.field === "title" ? 3 : f.field === "description" ? 2 : 1;
+        weight += count * fieldBoost;
+      }
+    }
+    if (weight > 0) out.push({ token: t, weight, fields: matchedFields });
+  }
+  return out.sort((a, b) => b.weight - a.weight);
+}
+
+export const explainMatch = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        id: z.string().uuid(),
+        query_text: z.string().min(1).max(2000),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data }) => {
+    const { data: rows, error } = await supabaseAdmin.rpc("explain_match", {
+      item_id: data.id,
+      query_text: data.query_text,
+    });
+    if (error) throw new Error(error.message);
+
+    const fields = (rows ?? []) as Array<{
+      field: string;
+      source_text: string;
+      trigram_similarity: number;
+      lexical_rank: number;
+      combined_score: number;
+    }>;
+
+    // Drop the synthetic "search_text" combined field from the displayed
+    // breakdown — keep it as the overall score for context.
+    const overall = fields.find((f) => f.field === "search_text");
+    const breakdown = fields.filter((f) => f.field !== "search_text");
+
+    const queryTokens = tokenize(data.query_text);
+    const contributingTokens = rankContributingTokens(
+      queryTokens,
+      breakdown.map((f) => ({ field: f.field, source_text: f.source_text })),
+    ).slice(0, 8);
+
+    return {
+      overall_score: overall?.combined_score ?? null,
+      breakdown,
+      contributing_tokens: contributingTokens,
+      query_tokens: queryTokens,
+    };
+  });
