@@ -124,6 +124,7 @@ function SearchPage() {
 
   const onSearch = async () => {
     if (!canSearch) return;
+    const myId = ++requestIdRef.current;
     setBusy(true);
     setInterpreted(null);
     setServerFailures(null);
@@ -155,10 +156,13 @@ function SearchPage() {
         }
       }
       const res = await searchItems({ data: payload });
+      // Stale-response guard: ignore if the user cancelled or started a new search.
+      if (myId !== requestIdRef.current) return;
       setResults(res.results as ItemSummary[]);
       setInterpreted(res.interpreted_query);
       setHasSearched(true);
     } catch (e) {
+      if (myId !== requestIdRef.current) return;
       const structured = parseServerError(e);
       if (structured) {
         setServerFailures(structured.failures);
@@ -167,8 +171,16 @@ function SearchPage() {
         toast.error(e instanceof Error ? e.message : "Search failed");
       }
     } finally {
-      setBusy(false);
+      if (myId === requestIdRef.current) setBusy(false);
     }
+  };
+
+  const onCancel = () => {
+    // Bump the request id so any in-flight response is discarded, and
+    // re-enable inputs immediately.
+    requestIdRef.current++;
+    setBusy(false);
+    toast.message("Search cancelled");
   };
 
   return (
