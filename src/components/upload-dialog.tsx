@@ -8,7 +8,19 @@ import { Label } from "@/components/ui/label";
 import { FileDropZone, AudioRecorder, type FilePayload } from "./media-input";
 import { addItem } from "@/server/items.functions";
 import { toast } from "sonner";
-import { Plus, Loader2 } from "lucide-react";
+import { Plus, Loader2, AlertCircle } from "lucide-react";
+import {
+  isValidationErrorPayload,
+  type ValidationFailure,
+} from "@/lib/file-validation";
+
+const RULE_LABELS: Record<ValidationFailure["rule"], string> = {
+  mime_type: "File type",
+  file_size: "File size",
+  audio_duration: "Audio duration",
+  data_url_format: "File encoding",
+  missing_data: "Missing data",
+};
 
 export function UploadDialog({ onAdded }: { onAdded?: () => void }) {
   const [open, setOpen] = useState(false);
