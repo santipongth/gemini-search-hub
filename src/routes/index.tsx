@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -19,7 +19,7 @@ import {
   type ValidationFailure,
   type ValidationErrorPayload,
 } from "@/lib/file-validation";
-import { Search, Sparkles, Loader2, CheckCircle2, AlertCircle, ArrowDownWideNarrow } from "lucide-react";
+import { Search, Sparkles, Loader2, CheckCircle2, AlertCircle, ArrowDownWideNarrow, X, FileText, ImageIcon, AudioLines, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { extractTerms } from "@/lib/highlight";
 import { InlineRuleFailures } from "@/components/inline-rule-failures";
@@ -97,6 +97,10 @@ function SearchPage() {
   const [hasSearched, setHasSearched] = useState(false);
   const [serverFailures, setServerFailures] = useState<ValidationFailure[] | null>(null);
   const [sortBy, setSortBy] = useState<"similarity" | "newest" | "oldest" | "title">("similarity");
+  // Track the in-flight request so the user can cancel and immediately
+  // re-enable inputs. The server still runs to completion, but the client
+  // discards the response.
+  const requestIdRef = useRef(0);
 
   const fileKind = tab === "image" ? "image" : tab === "audio" ? "audio" : null;
   const validation = useMemo(
@@ -120,6 +124,7 @@ function SearchPage() {
 
   const onSearch = async () => {
     if (!canSearch) return;
+    const myId = ++requestIdRef.current;
     setBusy(true);
     setInterpreted(null);
     setServerFailures(null);
@@ -151,10 +156,13 @@ function SearchPage() {
         }
       }
       const res = await searchItems({ data: payload });
+      // Stale-response guard: ignore if the user cancelled or started a new search.
+      if (myId !== requestIdRef.current) return;
       setResults(res.results as ItemSummary[]);
       setInterpreted(res.interpreted_query);
       setHasSearched(true);
     } catch (e) {
+      if (myId !== requestIdRef.current) return;
       const structured = parseServerError(e);
       if (structured) {
         setServerFailures(structured.failures);
@@ -163,8 +171,16 @@ function SearchPage() {
         toast.error(e instanceof Error ? e.message : "Search failed");
       }
     } finally {
-      setBusy(false);
+      if (myId === requestIdRef.current) setBusy(false);
     }
+  };
+
+  const onCancel = () => {
+    // Bump the request id so any in-flight response is discarded, and
+    // re-enable inputs immediately.
+    requestIdRef.current++;
+    setBusy(false);
+    toast.message("Search cancelled");
   };
 
   return (
@@ -236,15 +252,28 @@ function SearchPage() {
         )}
 
         <div className="flex flex-col items-center gap-2 pt-1">
-          <Button
-            onClick={onSearch}
-            disabled={!canSearch}
-            size="lg"
-            className="gap-2 px-10 h-12 rounded-full text-base font-medium bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-lg shadow-primary/25 hover:shadow-primary/40 hover:opacity-95 transition disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed"
-          >
-            {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <Search className="h-5 w-5" />}
-            {busy ? "Searching..." : "Search"}
-          </Button>
+          <div className="flex items-center gap-3">
+            <Button
+              onClick={onSearch}
+              disabled={!canSearch}
+              size="lg"
+              className="gap-2 px-10 h-12 rounded-full text-base font-medium bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-lg shadow-primary/25 hover:shadow-primary/40 hover:opacity-95 transition disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed"
+            >
+              {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <Search className="h-5 w-5" />}
+              {busy ? "Searching..." : "Search"}
+            </Button>
+            {busy && (
+              <Button
+                onClick={onCancel}
+                variant="outline"
+                size="lg"
+                className="gap-2 h-12 rounded-full px-6 border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+              >
+                <X className="h-4 w-4" />
+                Cancel
+              </Button>
+            )}
+          </div>
           {!canSearch && !busy && tab !== "text" && (
             <p className="text-xs text-muted-foreground">
               {!file
@@ -300,7 +329,9 @@ function SearchPage() {
               ))}
             </div>
           </>
-        ) : null}
+        ) : (
+          <MultimodalEmptyState activeTab={tab as "text" | "image" | "audio"} />
+        )}
       </div>
     </div>
   );
@@ -511,6 +542,86 @@ function SortToolbar({
           })}
         </div>
       </div>
+    </div>
+  );
+}
+
+function MultimodalEmptyState({
+  activeTab,
+}: {
+  activeTab: "text" | "image" | "audio";
+}) {
+  const steps: Array<{
+    icon: typeof FileText;
+    title: string;
+    body: string;
+    active: boolean;
+  }> = [
+    {
+      icon: FileText,
+      title: "Type a question",
+      body: "Describe what you're looking for in plain language — concepts, moods, or topics.",
+      active: activeTab === "text",
+    },
+    {
+      icon: ImageIcon,
+      title: "Drop an image",
+      body: "Upload a JPG, PNG, WEBP, or GIF (max 8 MB). Gemini describes it, then we match across every modality.",
+      active: activeTab === "image",
+    },
+    {
+      icon: AudioLines,
+      title: "Add audio",
+      body: "Upload or record up to 2 minutes (MP3, WAV, M4A, OGG, WEBM). We transcribe it and rank similar items.",
+      active: activeTab === "audio",
+    },
+  ];
+
+  return (
+    <div className="rounded-2xl border border-dashed border-border bg-card/50 px-6 py-12 text-center">
+      <div className="mx-auto h-14 w-14 rounded-full bg-gradient-to-br from-primary/15 to-accent/20 flex items-center justify-center mb-4">
+        <Upload className="h-6 w-6 text-primary" />
+      </div>
+      <h2 className="text-lg font-semibold">Start a multimodal search</h2>
+      <p className="mt-1 text-sm text-muted-foreground max-w-md mx-auto">
+        Mix text, images, and audio. Lumen embeds your query with Gemini and ranks
+        every item in the library by semantic similarity.
+      </p>
+
+      <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-3 text-left">
+        {steps.map((s) => {
+          const Icon = s.icon;
+          return (
+            <div
+              key={s.title}
+              className={`rounded-xl border p-4 transition ${
+                s.active
+                  ? "border-primary/40 bg-primary/5 shadow-sm"
+                  : "border-border bg-card"
+              }`}
+            >
+              <div
+                className={`inline-flex h-8 w-8 items-center justify-center rounded-lg mb-2 ${
+                  s.active
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground"
+                }`}
+              >
+                <Icon className="h-4 w-4" />
+              </div>
+              <div className="text-sm font-medium">{s.title}</div>
+              <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
+                {s.body}
+              </p>
+            </div>
+          );
+        })}
+      </div>
+
+      <p className="mt-6 text-xs text-muted-foreground">
+        Tip: results are ranked by cosine similarity — the closer to 100%, the
+        stronger the semantic match.
+      </p>
     </div>
   );
 }
