@@ -14,8 +14,32 @@ import {
   MAX_IMAGE_BYTES,
   MAX_AUDIO_BYTES,
 } from "@/components/media-input";
+import {
+  isValidationErrorPayload,
+  type ValidationFailure,
+  type ValidationErrorPayload,
+} from "@/lib/file-validation";
 import { Search, Sparkles, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
+
+// Try to parse a server function error into structured validation failures.
+function parseServerError(err: unknown): ValidationErrorPayload | null {
+  if (!(err instanceof Error)) return null;
+  try {
+    const parsed: unknown = JSON.parse(err.message);
+    return isValidationErrorPayload(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+const RULE_LABELS: Record<ValidationFailure["rule"], string> = {
+  mime_type: "File type",
+  file_size: "File size",
+  audio_duration: "Audio duration",
+  data_url_format: "File encoding",
+  missing_data: "Missing data",
+};
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -56,7 +80,7 @@ function validate(file: FilePayload | null, kind: "image" | "audio"): Validation
   const allowed = kind === "image" ? ALLOWED_IMAGE_MIME : ALLOWED_AUDIO_MIME;
   const maxSize = kind === "image" ? MAX_IMAGE_BYTES : MAX_AUDIO_BYTES;
   const size = dataUrlByteLength(file.data_url);
-  const mimeOk = allowed.includes(file.mime_type);
+  const mimeOk = (allowed as readonly string[]).includes(file.mime_type);
   const sizeOk = size <= maxSize;
   return { ok: mimeOk && sizeOk, size, maxSize, mimeOk, sizeOk, allowed };
 }
@@ -69,6 +93,7 @@ function SearchPage() {
   const [interpreted, setInterpreted] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+  const [serverFailures, setServerFailures] = useState<ValidationFailure[] | null>(null);
 
   const fileKind = tab === "image" ? "image" : tab === "audio" ? "audio" : null;
   const validation = useMemo(
@@ -87,6 +112,7 @@ function SearchPage() {
     if (!canSearch) return;
     setBusy(true);
     setInterpreted(null);
+    setServerFailures(null);
     try {
       const payload: {
         query_type: "text" | "image" | "audio";
@@ -113,7 +139,13 @@ function SearchPage() {
       setInterpreted(res.interpreted_query);
       setHasSearched(true);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Search failed");
+      const structured = parseServerError(e);
+      if (structured) {
+        setServerFailures(structured.failures);
+        toast.error("File rejected by server — see details below");
+      } else {
+        toast.error(e instanceof Error ? e.message : "Search failed");
+      }
     } finally {
       setBusy(false);
     }
@@ -162,6 +194,13 @@ function SearchPage() {
 
         {fileKind && validation && (
           <ValidationSummary kind={fileKind} file={file!} v={validation} />
+        )}
+
+        {serverFailures && serverFailures.length > 0 && (
+          <ServerFailurePanel
+            failures={serverFailures}
+            onDismiss={() => setServerFailures(null)}
+          />
         )}
 
         <div className="flex flex-col items-center gap-2 pt-1">
@@ -303,6 +342,54 @@ function ValidationSummary({
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function ServerFailurePanel({
+  failures,
+  onDismiss,
+}: {
+  failures: ValidationFailure[];
+  onDismiss: () => void;
+}) {
+  return (
+    <div className="rounded-xl border border-destructive/40 bg-destructive/5 p-4 text-sm">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-2 font-medium text-destructive">
+          <AlertCircle className="h-4 w-4" />
+          Server rejected the file
+        </div>
+        <button
+          onClick={onDismiss}
+          className="text-xs text-muted-foreground hover:text-foreground"
+        >
+          Dismiss
+        </button>
+      </div>
+      <ul className="mt-3 space-y-2">
+        {failures.map((f, i) => (
+          <li key={i} className="flex gap-3">
+            <span className="inline-flex shrink-0 items-center rounded-md border border-destructive/30 bg-destructive/10 px-2 py-0.5 text-xs font-mono font-medium text-destructive">
+              {RULE_LABELS[f.rule] ?? f.rule}
+            </span>
+            <div className="min-w-0">
+              <div className="text-foreground">{f.message}</div>
+              {f.details?.allowed && (
+                <div className="text-xs text-muted-foreground mt-0.5">
+                  Allowed: {f.details.allowed.join(", ")}
+                </div>
+              )}
+              {f.details?.actual !== undefined && f.details?.limit !== undefined && (
+                <div className="text-xs text-muted-foreground mt-0.5">
+                  Got <span className="font-mono">{f.details.actual}</span>, limit{" "}
+                  <span className="font-mono">{f.details.limit}</span>
+                </div>
+              )}
+            </div>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

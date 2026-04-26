@@ -8,7 +8,19 @@ import { Label } from "@/components/ui/label";
 import { FileDropZone, AudioRecorder, type FilePayload } from "./media-input";
 import { addItem } from "@/server/items.functions";
 import { toast } from "sonner";
-import { Plus, Loader2 } from "lucide-react";
+import { Plus, Loader2, AlertCircle } from "lucide-react";
+import {
+  isValidationErrorPayload,
+  type ValidationFailure,
+} from "@/lib/file-validation";
+
+const RULE_LABELS: Record<ValidationFailure["rule"], string> = {
+  mime_type: "File type",
+  file_size: "File size",
+  audio_duration: "Audio duration",
+  data_url_format: "File encoding",
+  missing_data: "Missing data",
+};
 
 export function UploadDialog({ onAdded }: { onAdded?: () => void }) {
   const [open, setOpen] = useState(false);
@@ -18,13 +30,16 @@ export function UploadDialog({ onAdded }: { onAdded?: () => void }) {
   const [text, setText] = useState("");
   const [file, setFile] = useState<FilePayload | null>(null);
   const [busy, setBusy] = useState(false);
+  const [serverFailures, setServerFailures] = useState<ValidationFailure[] | null>(null);
 
   const reset = () => {
     setTitle(""); setDesc(""); setText(""); setFile(null); setTab("text");
+    setServerFailures(null);
   };
 
   const submit = async () => {
     setBusy(true);
+    setServerFailures(null);
     try {
       if (tab === "text") {
         if (!text.trim()) throw new Error("Enter some text");
@@ -47,7 +62,21 @@ export function UploadDialog({ onAdded }: { onAdded?: () => void }) {
       setOpen(false);
       onAdded?.();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to add");
+      let parsed: ValidationFailure[] | null = null;
+      if (e instanceof Error) {
+        try {
+          const obj: unknown = JSON.parse(e.message);
+          if (isValidationErrorPayload(obj)) parsed = obj.failures;
+        } catch {
+          // not JSON
+        }
+      }
+      if (parsed) {
+        setServerFailures(parsed);
+        toast.error("File rejected — see details below");
+      } else {
+        toast.error(e instanceof Error ? e.message : "Failed to add");
+      }
     } finally {
       setBusy(false);
     }
@@ -116,6 +145,25 @@ export function UploadDialog({ onAdded }: { onAdded?: () => void }) {
             </TabsContent>
           </div>
         </Tabs>
+
+        {serverFailures && serverFailures.length > 0 && (
+          <div className="mt-4 rounded-xl border border-destructive/40 bg-destructive/5 p-3 text-sm">
+            <div className="flex items-center gap-2 font-medium text-destructive">
+              <AlertCircle className="h-4 w-4" />
+              Server rejected the file
+            </div>
+            <ul className="mt-2 space-y-1.5">
+              {serverFailures.map((f, i) => (
+                <li key={i} className="flex gap-2">
+                  <span className="inline-flex shrink-0 items-center rounded-md border border-destructive/30 bg-destructive/10 px-2 py-0.5 text-xs font-mono font-medium text-destructive">
+                    {RULE_LABELS[f.rule] ?? f.rule}
+                  </span>
+                  <span className="text-foreground">{f.message}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         <Button onClick={submit} disabled={busy} className="mt-4 gap-2">
           {busy && <Loader2 className="h-4 w-4 animate-spin" />}
