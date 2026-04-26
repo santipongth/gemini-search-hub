@@ -12,7 +12,6 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as LibraryRouteImport } from './routes/library'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ItemIdRouteImport } from './routes/item.$id'
-import { Route as ApiPublicSeedRouteImport } from './routes/api.public.seed'
 
 const LibraryRoute = LibraryRouteImport.update({
   id: '/library',
@@ -29,44 +28,35 @@ const ItemIdRoute = ItemIdRouteImport.update({
   path: '/item/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicSeedRoute = ApiPublicSeedRouteImport.update({
-  id: '/api/public/seed',
-  path: '/api/public/seed',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/library': typeof LibraryRoute
   '/item/$id': typeof ItemIdRoute
-  '/api/public/seed': typeof ApiPublicSeedRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/library': typeof LibraryRoute
   '/item/$id': typeof ItemIdRoute
-  '/api/public/seed': typeof ApiPublicSeedRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/library': typeof LibraryRoute
   '/item/$id': typeof ItemIdRoute
-  '/api/public/seed': typeof ApiPublicSeedRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/library' | '/item/$id' | '/api/public/seed'
+  fullPaths: '/' | '/library' | '/item/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/library' | '/item/$id' | '/api/public/seed'
-  id: '__root__' | '/' | '/library' | '/item/$id' | '/api/public/seed'
+  to: '/' | '/library' | '/item/$id'
+  id: '__root__' | '/' | '/library' | '/item/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LibraryRoute: typeof LibraryRoute
   ItemIdRoute: typeof ItemIdRoute
-  ApiPublicSeedRoute: typeof ApiPublicSeedRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -92,13 +82,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ItemIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/seed': {
-      id: '/api/public/seed'
-      path: '/api/public/seed'
-      fullPath: '/api/public/seed'
-      preLoaderRoute: typeof ApiPublicSeedRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
@@ -106,8 +89,16 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LibraryRoute: LibraryRoute,
   ItemIdRoute: ItemIdRoute,
-  ApiPublicSeedRoute: ApiPublicSeedRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}

@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { embedText, describeImage, transcribeAudio } from "./ai.server";
+import { describeImage, transcribeAudio } from "./ai.server";
 
 const Modality = z.enum(["text", "image", "audio"]);
 
@@ -57,8 +57,6 @@ export const addItem = createServerFn({ method: "POST" })
       embeddingSource = [data.title, data.description, aiText].filter(Boolean).join("\n");
     }
 
-    const embedding = await embedText(embeddingSource);
-
     const { data: row, error } = await supabaseAdmin
       .from("items")
       .insert({
@@ -68,7 +66,7 @@ export const addItem = createServerFn({ method: "POST" })
         text_content,
         storage_path,
         mime_type: data.mime_type ?? null,
-        embedding: embedding as unknown as string,
+        search_text: embeddingSource,
       })
       .select("id")
       .single();
@@ -104,10 +102,8 @@ export const searchItems = createServerFn({ method: "POST" })
       queryText = await transcribeAudio(data.data_url, data.mime_type);
     }
 
-    const embedding = await embedText(queryText);
-
     const { data: rows, error } = await supabaseAdmin.rpc("match_items", {
-      query_embedding: embedding as unknown as string,
+      query_text: queryText,
       match_count: data.limit,
       modality_filter: data.modality_filter === "all" ? undefined : data.modality_filter,
       min_similarity: data.min_similarity,
@@ -124,13 +120,13 @@ export const findSimilar = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { data: item, error } = await supabaseAdmin
       .from("items")
-      .select("id, embedding")
+      .select("id, search_text")
       .eq("id", data.id)
       .single();
     if (error || !item) throw new Error("Item not found");
 
     const { data: rows, error: e2 } = await supabaseAdmin.rpc("match_items", {
-      query_embedding: item.embedding as unknown as string,
+      query_text: item.search_text ?? "",
       match_count: data.limit + 1,
       modality_filter: undefined,
       min_similarity: 0,
