@@ -109,7 +109,7 @@ export const searchItems = createServerFn({ method: "POST" })
     const { data: rows, error } = await supabaseAdmin.rpc("match_items", {
       query_embedding: embedding as unknown as string,
       match_count: data.limit,
-      modality_filter: data.modality_filter === "all" ? null : data.modality_filter,
+      modality_filter: data.modality_filter === "all" ? undefined : data.modality_filter,
       min_similarity: data.min_similarity,
     });
     if (error) throw new Error(error.message);
@@ -132,7 +132,7 @@ export const findSimilar = createServerFn({ method: "POST" })
     const { data: rows, error: e2 } = await supabaseAdmin.rpc("match_items", {
       query_embedding: item.embedding as unknown as string,
       match_count: data.limit + 1,
-      modality_filter: null,
+      modality_filter: undefined,
       min_similarity: 0,
     });
     if (e2) throw new Error(e2.message);
