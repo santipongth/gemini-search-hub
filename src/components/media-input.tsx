@@ -89,10 +89,13 @@ export function FileDropZone({
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [drag, setDrag] = useState(false);
+  const [inlineError, setInlineError] = useState<string | null>(null);
 
   const handle = async (file: File) => {
+    setInlineError(null);
     const err = await validateFile(file, kind);
     if (err) {
+      setInlineError(err);
       toast.error(err);
       return;
     }
