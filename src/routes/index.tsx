@@ -21,6 +21,7 @@ import {
 } from "@/lib/file-validation";
 import { Search, Sparkles, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
+import { extractTerms } from "@/lib/highlight";
 
 // Try to parse a server function error into structured validation failures.
 function parseServerError(err: unknown): ValidationErrorPayload | null {
