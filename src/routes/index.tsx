@@ -173,9 +173,6 @@ function SearchPage() {
         <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs text-muted-foreground">
           <Sparkles className="h-3 w-3" /> Powered by Gemini embeddings
         </div>
-        <h1 className="text-4xl sm:text-5xl font-semibold tracking-tight">
-          Search across <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">text, images & audio</span>
-        </h1>
         <p className="text-muted-foreground max-w-xl mx-auto">
           Type a question, drop an image, or record audio. Lumen finds semantically similar items across every modality.
         </p>
