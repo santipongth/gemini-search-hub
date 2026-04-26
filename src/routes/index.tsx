@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,7 @@ import {
 import { Search, Sparkles, Loader2, CheckCircle2, AlertCircle, ArrowDownWideNarrow } from "lucide-react";
 import { toast } from "sonner";
 import { extractTerms } from "@/lib/highlight";
+import { InlineRuleFailures } from "@/components/inline-rule-failures";
 
 // Try to parse a server function error into structured validation failures.
 function parseServerError(err: unknown): ValidationErrorPayload | null {
@@ -110,6 +111,13 @@ function SearchPage() {
     return validation.ok;
   })();
 
+  // Auto-reset server failures whenever the inputs change so the user can
+  // immediately retry without refreshing. Tracks file identity (data_url),
+  // text query, and the active tab.
+  useEffect(() => {
+    setServerFailures(null);
+  }, [file?.data_url, text, tab]);
+
   const onSearch = async () => {
     if (!canSearch) return;
     setBusy(true);
@@ -124,6 +132,8 @@ function SearchPage() {
         text?: string;
         data_url?: string;
         mime_type?: string;
+        filename?: string;
+        audio_duration_seconds?: number;
       } = {
         query_type: tab as "text" | "image" | "audio",
         modality_filter: "all",
@@ -135,6 +145,10 @@ function SearchPage() {
       } else {
         payload.data_url = file!.data_url;
         payload.mime_type = file!.mime_type;
+        payload.filename = file!.filename;
+        if (typeof file!.duration_seconds === "number") {
+          payload.audio_duration_seconds = file!.duration_seconds;
+        }
       }
       const res = await searchItems({ data: payload });
       setResults(res.results as ItemSummary[]);
@@ -175,6 +189,13 @@ function SearchPage() {
             <TabsTrigger value="audio">Audio</TabsTrigger>
           </TabsList>
 
+          {/* Inline failures attached to the type picker (mime mismatch). */}
+          <InlineRuleFailures
+            failures={serverFailures}
+            rules={["mime_type"]}
+            className="max-w-sm mx-auto"
+          />
+
           <TabsContent value="text" className="mt-4">
             <Textarea
               value={text}
@@ -187,9 +208,19 @@ function SearchPage() {
           </TabsContent>
           <TabsContent value="image" className="mt-4">
             <FileDropZone accept="image/*" kind="image" hint="JPG, PNG, WEBP, or GIF · max 8 MB" value={file} onFile={setFile} onClear={() => setFile(null)} />
+            {/* File-size failures rendered next to the image dropzone. */}
+            <InlineRuleFailures
+              failures={serverFailures}
+              rules={["file_size", "data_url_format", "missing_data"]}
+            />
           </TabsContent>
           <TabsContent value="audio" className="mt-4 space-y-3">
             <FileDropZone accept="audio/*" kind="audio" hint="MP3, WAV, M4A, OGG, or WEBM · max 15 MB · 2 min" value={file} onFile={setFile} onClear={() => setFile(null)} />
+            {/* Size + duration failures rendered next to the audio inputs. */}
+            <InlineRuleFailures
+              failures={serverFailures}
+              rules={["file_size", "audio_duration", "data_url_format", "missing_data"]}
+            />
             {!file && <AudioRecorder onFile={setFile} />}
           </TabsContent>
         </Tabs>
@@ -375,9 +406,14 @@ function ServerFailurePanel({
   return (
     <div className="rounded-xl border border-destructive/40 bg-destructive/5 p-4 text-sm">
       <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-2 font-medium text-destructive">
-          <AlertCircle className="h-4 w-4" />
-          Server rejected the file
+        <div className="flex items-center gap-2 font-medium text-destructive min-w-0">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          <span>Server rejected the file</span>
+          {failures[0]?.details?.filename && (
+            <span className="text-xs font-normal text-muted-foreground font-mono truncate">
+              · {failures[0].details.filename}
+            </span>
+          )}
         </div>
         <button
           onClick={onDismiss}

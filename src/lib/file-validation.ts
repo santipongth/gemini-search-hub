@@ -41,6 +41,9 @@ export type ValidationFailure = {
     actual?: string | number;
     limit?: string | number;
     allowed?: readonly string[];
+    // Original filename of the rejected file, when known. Lets the UI tell
+    // the user exactly which upload attempt failed.
+    filename?: string;
   };
 };
 
@@ -87,10 +90,21 @@ export type ServerFileInput = {
   data_url: string | undefined;
   mime_type: string | undefined;
   kind: FileKind;
+  filename?: string;
+  // For audio: pre-computed duration in seconds (e.g. measured by the
+  // browser before upload). The server treats this as a hint only and
+  // re-derives the duration from the file bytes when possible.
+  audio_duration_seconds?: number;
 };
 
 // Run every applicable rule and collect ALL failures (not just the first).
-export function validateUploadedFile(input: ServerFileInput): ValidationFailure[] {
+// `extraFailures` allows callers (e.g. server-only audio duration parsing)
+// to inject additional rule failures into the same result set so the
+// filename/details merge happens in one place.
+export function validateUploadedFile(
+  input: ServerFileInput,
+  extraFailures: ValidationFailure[] = [],
+): ValidationFailure[] {
   const failures: ValidationFailure[] = [];
 
   if (!input.data_url || !input.mime_type) {
@@ -98,7 +112,7 @@ export function validateUploadedFile(input: ServerFileInput): ValidationFailure[
       rule: "missing_data",
       message: "File data and MIME type are required.",
     });
-    return failures;
+    return tagFailures(failures, input.filename);
   }
 
   // MIME type check
@@ -119,7 +133,7 @@ export function validateUploadedFile(input: ServerFileInput): ValidationFailure[
       rule: "data_url_format",
       message: "File could not be decoded (invalid data URL).",
     });
-    return failures; // can't size-check garbage
+    return tagFailures(failures, input.filename); // can't size-check garbage
   }
 
   // File size check (decode length only — don't allocate full buffer here)
@@ -134,5 +148,44 @@ export function validateUploadedFile(input: ServerFileInput): ValidationFailure[
     });
   }
 
-  return failures;
+  // Audio duration hint check (used when the caller cannot decode the file
+  // bytes — e.g. the client-side live preview). The authoritative duration
+  // check is performed server-side via parseAudioDurationSeconds().
+  if (
+    input.kind === "audio" &&
+    typeof input.audio_duration_seconds === "number" &&
+    input.audio_duration_seconds > MAX_AUDIO_SECONDS
+  ) {
+    failures.push(
+      makeAudioDurationFailure(input.audio_duration_seconds),
+    );
+  }
+
+  for (const f of extraFailures) failures.push(f);
+
+  return tagFailures(failures, input.filename);
+}
+
+export function makeAudioDurationFailure(seconds: number): ValidationFailure {
+  return {
+    rule: "audio_duration",
+    message: `Audio is ${seconds.toFixed(1)}s, exceeds the ${MAX_AUDIO_SECONDS}s (${Math.floor(
+      MAX_AUDIO_SECONDS / 60,
+    )} min) limit.`,
+    details: {
+      actual: `${seconds.toFixed(1)}s`,
+      limit: `${MAX_AUDIO_SECONDS}s`,
+    },
+  };
+}
+
+function tagFailures(
+  failures: ValidationFailure[],
+  filename: string | undefined,
+): ValidationFailure[] {
+  if (!filename) return failures;
+  return failures.map((f) => ({
+    ...f,
+    details: { ...(f.details ?? {}), filename },
+  }));
 }

@@ -24,6 +24,9 @@ export type FilePayload = {
   data_url: string;
   mime_type: string;
   filename: string;
+  // For audio: duration measured client-side. Sent to the server as a
+  // hint; the server still re-derives from the bytes when possible.
+  duration_seconds?: number;
 };
 
 
@@ -108,9 +111,11 @@ export function FileDropZone({
     }
     if (!dataUrl) return;
 
+    let durationSeconds: number | undefined;
     if (kind === "audio") {
       try {
         const duration = await getAudioDuration(dataUrl);
+        durationSeconds = duration;
         if (duration > MAX_AUDIO_SECONDS) {
           toast.error(
             `Audio is ${duration.toFixed(0)}s. Max ${MAX_AUDIO_SECONDS}s (${Math.floor(
@@ -125,7 +130,12 @@ export function FileDropZone({
       }
     }
 
-    onFile({ data_url: dataUrl, mime_type: file.type, filename: file.name });
+    onFile({
+      data_url: dataUrl,
+      mime_type: file.type,
+      filename: file.name,
+      duration_seconds: durationSeconds,
+    });
   };
 
   if (value) {
@@ -201,12 +211,14 @@ export function AudioRecorder({ onFile }: { onFile: (f: FilePayload) => void }) 
         toast.error(`Recording is ${(blob.size / 1024 / 1024).toFixed(1)} MB. Max 15 MB.`);
         return;
       }
+      const elapsed = (Date.now() - startedAtRef.current) / 1000;
       const reader = new FileReader();
       reader.onload = () => {
         onFile({
           data_url: reader.result as string,
           mime_type: blob.type,
           filename: `recording-${Date.now()}.webm`,
+          duration_seconds: elapsed,
         });
       };
       reader.readAsDataURL(blob);

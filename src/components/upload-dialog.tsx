@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
@@ -13,14 +13,7 @@ import {
   isValidationErrorPayload,
   type ValidationFailure,
 } from "@/lib/file-validation";
-
-const RULE_LABELS: Record<ValidationFailure["rule"], string> = {
-  mime_type: "File type",
-  file_size: "File size",
-  audio_duration: "Audio duration",
-  data_url_format: "File encoding",
-  missing_data: "Missing data",
-};
+import { InlineRuleFailures, RULE_LABELS } from "@/components/inline-rule-failures";
 
 export function UploadDialog({ onAdded }: { onAdded?: () => void }) {
   const [open, setOpen] = useState(false);
@@ -36,6 +29,12 @@ export function UploadDialog({ onAdded }: { onAdded?: () => void }) {
     setTitle(""); setDesc(""); setText(""); setFile(null); setTab("text");
     setServerFailures(null);
   };
+
+  // Auto-reset server failures when the active file or tab changes so the
+  // user can retry the upload immediately without dismissing anything.
+  useEffect(() => {
+    setServerFailures(null);
+  }, [file?.data_url, tab]);
 
   const submit = async () => {
     setBusy(true);
@@ -54,6 +53,7 @@ export function UploadDialog({ onAdded }: { onAdded?: () => void }) {
             data_url: file.data_url,
             mime_type: file.mime_type,
             filename: file.filename,
+            audio_duration_seconds: file.duration_seconds,
           },
         });
       }
@@ -100,6 +100,12 @@ export function UploadDialog({ onAdded }: { onAdded?: () => void }) {
             <TabsTrigger value="audio">Audio</TabsTrigger>
           </TabsList>
 
+          {/* MIME-type failures rendered next to the type picker. */}
+          <InlineRuleFailures
+            failures={serverFailures}
+            rules={["mime_type"]}
+          />
+
           <div className="mt-4 space-y-3">
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -131,6 +137,10 @@ export function UploadDialog({ onAdded }: { onAdded?: () => void }) {
                 onFile={setFile}
                 onClear={() => setFile(null)}
               />
+              <InlineRuleFailures
+                failures={serverFailures}
+                rules={["file_size", "data_url_format", "missing_data"]}
+              />
             </TabsContent>
             <TabsContent value="audio" className="mt-2 space-y-3">
               <FileDropZone
@@ -140,6 +150,10 @@ export function UploadDialog({ onAdded }: { onAdded?: () => void }) {
                 value={file}
                 onFile={setFile}
                 onClear={() => setFile(null)}
+              />
+              <InlineRuleFailures
+                failures={serverFailures}
+                rules={["file_size", "audio_duration", "data_url_format", "missing_data"]}
               />
               {!file && <AudioRecorder onFile={setFile} />}
             </TabsContent>
@@ -151,6 +165,11 @@ export function UploadDialog({ onAdded }: { onAdded?: () => void }) {
             <div className="flex items-center gap-2 font-medium text-destructive">
               <AlertCircle className="h-4 w-4" />
               Server rejected the file
+              {serverFailures[0]?.details?.filename && (
+                <span className="ml-1 text-xs font-normal text-muted-foreground font-mono truncate">
+                  · {serverFailures[0].details.filename}
+                </span>
+              )}
             </div>
             <ul className="mt-2 space-y-1.5">
               {serverFailures.map((f, i) => (

@@ -4,9 +4,12 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { describeImage, transcribeAudio } from "./ai.server";
 import {
   validateUploadedFile,
+  makeAudioDurationFailure,
+  MAX_AUDIO_SECONDS,
   type ValidationErrorPayload,
   type ValidationFailure,
 } from "@/lib/file-validation";
+import { parseAudioDurationSeconds } from "./audio-duration.server";
 
 const Modality = z.enum(["text", "image", "audio"]);
 
@@ -18,6 +21,67 @@ function throwValidationError(failures: ValidationFailure[]): never {
     failures,
   };
   throw new Error(JSON.stringify(payload));
+}
+
+// Decode a data URL into bytes, returning [bytes, base64Body] or null on a
+// malformed URL (validateUploadedFile already returns a structured failure
+// in that case, so we treat null here as "skip the deeper checks").
+function decodeDataUrl(dataUrl: string): Uint8Array | null {
+  const m = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
+  if (!m) return null;
+  try {
+    return Uint8Array.from(atob(m[2]), (c) => c.charCodeAt(0));
+  } catch {
+    return null;
+  }
+}
+
+// Centralized server-side validation for image/audio uploads. Runs the
+// shared rules, then — for audio — decodes the file bytes and verifies the
+// duration against MAX_AUDIO_SECONDS. Returns the decoded bytes on success
+// so callers can reuse them for storage upload, avoiding a second decode.
+function runServerFileValidation(args: {
+  data_url: string | undefined;
+  mime_type: string | undefined;
+  kind: "image" | "audio";
+  filename: string | undefined;
+  duration_hint?: number;
+}): { bytes: Uint8Array } {
+  const extra: ValidationFailure[] = [];
+  const bytes =
+    args.data_url && args.mime_type ? decodeDataUrl(args.data_url) : null;
+
+  // Authoritative server-side audio duration check (when we can parse it).
+  if (args.kind === "audio" && bytes && args.mime_type) {
+    const seconds = parseAudioDurationSeconds(bytes, args.mime_type);
+    if (seconds !== null && seconds > MAX_AUDIO_SECONDS) {
+      extra.push(makeAudioDurationFailure(seconds));
+    }
+  }
+
+  const failures = validateUploadedFile(
+    {
+      data_url: args.data_url,
+      mime_type: args.mime_type,
+      kind: args.kind,
+      filename: args.filename,
+      audio_duration_seconds: args.duration_hint,
+    },
+    extra,
+  );
+  if (failures.length > 0) throwValidationError(failures);
+  if (!bytes) {
+    // Validation passed but we couldn't decode — should never happen, but
+    // surface it as a structured failure rather than crashing.
+    throwValidationError([
+      {
+        rule: "data_url_format",
+        message: "File could not be decoded after validation.",
+        details: { filename: args.filename },
+      },
+    ]);
+  }
+  return { bytes };
 }
 
 // ---------- Add an item ----------
@@ -32,6 +96,9 @@ const AddInput = z.object({
   data_url: z.string().optional(),
   mime_type: z.string().max(100).optional(),
   filename: z.string().max(200).optional(),
+  // Optional client-measured audio duration (seconds). Server still
+  // re-derives from file bytes when possible.
+  audio_duration_seconds: z.number().min(0).max(60 * 60).optional(),
 });
 
 export const addItem = createServerFn({ method: "POST" })
@@ -48,17 +115,17 @@ export const addItem = createServerFn({ method: "POST" })
         .filter(Boolean)
         .join("\n");
     } else {
-      // Structured server-side validation — collect ALL rule failures.
-      const failures = validateUploadedFile({
+      // Structured server-side validation — collect ALL rule failures
+      // (mime, size, audio duration) and tag each with the filename so
+      // the UI can show which upload attempt failed.
+      const { bytes } = runServerFileValidation({
         data_url: data.data_url,
         mime_type: data.mime_type,
         kind: data.modality,
+        filename: data.filename,
+        duration_hint: data.audio_duration_seconds,
       });
-      if (failures.length > 0) throwValidationError(failures);
 
-      // Safe to decode now (validateUploadedFile guarantees format).
-      const match = data.data_url!.match(/^data:([^;]+);base64,(.+)$/)!;
-      const bytes = Uint8Array.from(atob(match[2]), (c) => c.charCodeAt(0));
       const ext = (data.filename?.split(".").pop() || "bin").toLowerCase();
       const path = `${data.modality}/${crypto.randomUUID()}.${ext}`;
       const { error: upErr } = await supabaseAdmin.storage
@@ -101,6 +168,8 @@ const SearchInput = z.object({
   text: z.string().max(2000).optional(),
   data_url: z.string().optional(),
   mime_type: z.string().max(100).optional(),
+  filename: z.string().max(200).optional(),
+  audio_duration_seconds: z.number().min(0).max(60 * 60).optional(),
   modality_filter: z.union([Modality, z.literal("all")]).default("all"),
   min_similarity: z.number().min(0).max(1).default(0),
   limit: z.number().int().min(1).max(50).default(20),
@@ -115,12 +184,15 @@ export const searchItems = createServerFn({ method: "POST" })
       queryText = data.text.trim();
     } else {
       const kind = data.query_type; // "image" | "audio"
-      const failures = validateUploadedFile({
+      // Authoritative server-side validation, including audio duration
+      // (parsed from the file bytes when format is recognized).
+      runServerFileValidation({
         data_url: data.data_url,
         mime_type: data.mime_type,
         kind,
+        filename: data.filename,
+        duration_hint: data.audio_duration_seconds,
       });
-      if (failures.length > 0) throwValidationError(failures);
       queryText =
         kind === "image"
           ? await describeImage(data.data_url!)
