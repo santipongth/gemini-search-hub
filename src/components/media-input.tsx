@@ -111,9 +111,11 @@ export function FileDropZone({
     }
     if (!dataUrl) return;
 
+    let durationSeconds: number | undefined;
     if (kind === "audio") {
       try {
         const duration = await getAudioDuration(dataUrl);
+        durationSeconds = duration;
         if (duration > MAX_AUDIO_SECONDS) {
           toast.error(
             `Audio is ${duration.toFixed(0)}s. Max ${MAX_AUDIO_SECONDS}s (${Math.floor(
@@ -128,7 +130,12 @@ export function FileDropZone({
       }
     }
 
-    onFile({ data_url: dataUrl, mime_type: file.type, filename: file.name });
+    onFile({
+      data_url: dataUrl,
+      mime_type: file.type,
+      filename: file.name,
+      duration_seconds: durationSeconds,
+    });
   };
 
   if (value) {
