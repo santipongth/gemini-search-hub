@@ -96,7 +96,8 @@ export function UploadDialog({ onAdded }: { onAdded?: () => void }) {
             <TabsContent value="image" className="mt-2">
               <FileDropZone
                 accept="image/*"
-                hint="JPG, PNG, or WEBP"
+                kind="image"
+                hint="JPG, PNG, WEBP, or GIF · max 8 MB"
                 value={file}
                 onFile={setFile}
                 onClear={() => setFile(null)}
@@ -105,7 +106,8 @@ export function UploadDialog({ onAdded }: { onAdded?: () => void }) {
             <TabsContent value="audio" className="mt-2 space-y-3">
               <FileDropZone
                 accept="audio/*"
-                hint="MP3, WAV, M4A, or WEBM"
+                kind="audio"
+                hint="MP3, WAV, M4A, OGG, or WEBM · max 15 MB · 2 min"
                 value={file}
                 onFile={setFile}
                 onClear={() => setFile(null)}

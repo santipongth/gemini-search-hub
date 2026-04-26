@@ -36,10 +36,28 @@ export const addItem = createServerFn({ method: "POST" })
       if (!data.data_url || !data.mime_type) {
         throw new Error("File data is required for image/audio");
       }
+      // Server-side validation
+      const ALLOWED_IMAGE = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+      const ALLOWED_AUDIO = [
+        "audio/mpeg", "audio/mp3", "audio/wav", "audio/wave", "audio/x-wav",
+        "audio/webm", "audio/ogg", "audio/mp4", "audio/x-m4a", "audio/aac",
+      ];
+      const MAX_IMAGE = 8 * 1024 * 1024;
+      const MAX_AUDIO = 15 * 1024 * 1024;
+      const allowed = data.modality === "image" ? ALLOWED_IMAGE : ALLOWED_AUDIO;
+      if (!allowed.includes(data.mime_type)) {
+        throw new Error(`Unsupported ${data.modality} type: ${data.mime_type}`);
+      }
       // Decode data URL → upload to storage
       const match = data.data_url.match(/^data:([^;]+);base64,(.+)$/);
       if (!match) throw new Error("Invalid data URL");
       const bytes = Uint8Array.from(atob(match[2]), (c) => c.charCodeAt(0));
+      const maxBytes = data.modality === "image" ? MAX_IMAGE : MAX_AUDIO;
+      if (bytes.byteLength > maxBytes) {
+        throw new Error(
+          `${data.modality === "image" ? "Image" : "Audio"} exceeds ${(maxBytes / 1024 / 1024).toFixed(0)} MB limit`,
+        );
+      }
       const ext = (data.filename?.split(".").pop() || "bin").toLowerCase();
       const path = `${data.modality}/${crypto.randomUUID()}.${ext}`;
       const { error: upErr } = await supabaseAdmin.storage

@@ -3,8 +3,6 @@ import { useState } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Slider } from "@/components/ui/slider";
-import { Label } from "@/components/ui/label";
 import { searchItems } from "@/server/items.functions";
 import { ItemCard, type ItemSummary } from "@/components/item-card";
 import { FileDropZone, AudioRecorder, type FilePayload } from "@/components/media-input";
@@ -28,8 +26,6 @@ function SearchPage() {
   const [results, setResults] = useState<ItemSummary[]>([]);
   const [interpreted, setInterpreted] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [filter, setFilter] = useState<"all" | "text" | "image" | "audio">("all");
-  const [minSim, setMinSim] = useState(0);
   const [hasSearched, setHasSearched] = useState(false);
 
   const onSearch = async () => {
@@ -38,7 +34,7 @@ function SearchPage() {
     try {
       const payload: {
         query_type: "text" | "image" | "audio";
-        modality_filter: "all" | "text" | "image" | "audio";
+        modality_filter: "all";
         min_similarity: number;
         limit: number;
         text?: string;
@@ -46,8 +42,8 @@ function SearchPage() {
         mime_type?: string;
       } = {
         query_type: tab as "text" | "image" | "audio",
-        modality_filter: filter,
-        min_similarity: minSim,
+        modality_filter: "all",
+        min_similarity: 0,
         limit: 24,
       };
       if (tab === "text") {
@@ -102,35 +98,15 @@ function SearchPage() {
             />
           </TabsContent>
           <TabsContent value="image" className="mt-4">
-            <FileDropZone accept="image/*" hint="JPG, PNG, WEBP" value={file} onFile={setFile} onClear={() => setFile(null)} />
+            <FileDropZone accept="image/*" kind="image" hint="JPG, PNG, WEBP, or GIF · max 8 MB" value={file} onFile={setFile} onClear={() => setFile(null)} />
           </TabsContent>
           <TabsContent value="audio" className="mt-4 space-y-3">
-            <FileDropZone accept="audio/*" hint="MP3, WAV, M4A, WEBM" value={file} onFile={setFile} onClear={() => setFile(null)} />
+            <FileDropZone accept="audio/*" kind="audio" hint="MP3, WAV, M4A, OGG, or WEBM · max 15 MB · 2 min" value={file} onFile={setFile} onClear={() => setFile(null)} />
             {!file && <AudioRecorder onFile={setFile} />}
           </TabsContent>
         </Tabs>
 
-        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-end">
-          <div className="flex-1 w-full">
-            <Label className="text-xs">Modality filter</Label>
-            <div className="flex flex-wrap gap-2 mt-1.5">
-              {(["all", "text", "image", "audio"] as const).map((f) => (
-                <button
-                  key={f}
-                  onClick={() => setFilter(f)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-medium border transition ${
-                    filter === f ? "bg-primary text-primary-foreground border-primary" : "bg-background border-border hover:bg-muted"
-                  }`}
-                >
-                  {f}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="w-full sm:w-64">
-            <Label className="text-xs">Min similarity: {(minSim * 100).toFixed(0)}%</Label>
-            <Slider value={[minSim]} onValueChange={(v) => setMinSim(v[0])} min={0} max={1} step={0.05} className="mt-2" />
-          </div>
+        <div className="flex justify-end">
           <Button onClick={onSearch} disabled={busy} size="lg" className="gap-2">
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
             Search
@@ -160,7 +136,7 @@ function SearchPage() {
           </div>
         ) : hasSearched && results.length === 0 ? (
           <div className="text-center text-muted-foreground py-16">
-            No matches. Try lowering the similarity threshold or broadening the query.
+            No matches. Try broadening your query.
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
