@@ -19,7 +19,7 @@ import {
   type ValidationFailure,
   type ValidationErrorPayload,
 } from "@/lib/file-validation";
-import { Search, Sparkles, Loader2, CheckCircle2, AlertCircle, ArrowDownWideNarrow } from "lucide-react";
+import { Search, Sparkles, Loader2, CheckCircle2, AlertCircle, ArrowDownWideNarrow, X, FileText, ImageIcon, AudioLines, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { extractTerms } from "@/lib/highlight";
 import { InlineRuleFailures } from "@/components/inline-rule-failures";
