@@ -24,6 +24,9 @@ export type FilePayload = {
   data_url: string;
   mime_type: string;
   filename: string;
+  // For audio: duration measured client-side. Sent to the server as a
+  // hint; the server still re-derives from the bytes when possible.
+  duration_seconds?: number;
 };
 
 
