@@ -2,8 +2,23 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { describeImage, transcribeAudio } from "./ai.server";
+import {
+  validateUploadedFile,
+  type ValidationErrorPayload,
+  type ValidationFailure,
+} from "@/lib/file-validation";
 
 const Modality = z.enum(["text", "image", "audio"]);
+
+// Throw a plain Error whose .message is JSON so TanStack serializes it cleanly
+// across the RPC boundary. Client parses it back into ValidationErrorPayload.
+function throwValidationError(failures: ValidationFailure[]): never {
+  const payload: ValidationErrorPayload = {
+    code: "FILE_VALIDATION_FAILED",
+    failures,
+  };
+  throw new Error(JSON.stringify(payload));
+}
 
 // ---------- Add an item ----------
 
@@ -14,7 +29,7 @@ const AddInput = z.object({
   // for text
   text_content: z.string().max(8000).optional(),
   // for image/audio
-  data_url: z.string().optional(), // base64 data URL of the file
+  data_url: z.string().optional(),
   mime_type: z.string().max(100).optional(),
   filename: z.string().max(200).optional(),
 });
@@ -33,44 +48,30 @@ export const addItem = createServerFn({ method: "POST" })
         .filter(Boolean)
         .join("\n");
     } else {
-      if (!data.data_url || !data.mime_type) {
-        throw new Error("File data is required for image/audio");
-      }
-      // Server-side validation
-      const ALLOWED_IMAGE = ["image/jpeg", "image/png", "image/webp", "image/gif"];
-      const ALLOWED_AUDIO = [
-        "audio/mpeg", "audio/mp3", "audio/wav", "audio/wave", "audio/x-wav",
-        "audio/webm", "audio/ogg", "audio/mp4", "audio/x-m4a", "audio/aac",
-      ];
-      const MAX_IMAGE = 8 * 1024 * 1024;
-      const MAX_AUDIO = 15 * 1024 * 1024;
-      const allowed = data.modality === "image" ? ALLOWED_IMAGE : ALLOWED_AUDIO;
-      if (!allowed.includes(data.mime_type)) {
-        throw new Error(`Unsupported ${data.modality} type: ${data.mime_type}`);
-      }
-      // Decode data URL → upload to storage
-      const match = data.data_url.match(/^data:([^;]+);base64,(.+)$/);
-      if (!match) throw new Error("Invalid data URL");
+      // Structured server-side validation — collect ALL rule failures.
+      const failures = validateUploadedFile({
+        data_url: data.data_url,
+        mime_type: data.mime_type,
+        kind: data.modality,
+      });
+      if (failures.length > 0) throwValidationError(failures);
+
+      // Safe to decode now (validateUploadedFile guarantees format).
+      const match = data.data_url!.match(/^data:([^;]+);base64,(.+)$/)!;
       const bytes = Uint8Array.from(atob(match[2]), (c) => c.charCodeAt(0));
-      const maxBytes = data.modality === "image" ? MAX_IMAGE : MAX_AUDIO;
-      if (bytes.byteLength > maxBytes) {
-        throw new Error(
-          `${data.modality === "image" ? "Image" : "Audio"} exceeds ${(maxBytes / 1024 / 1024).toFixed(0)} MB limit`,
-        );
-      }
       const ext = (data.filename?.split(".").pop() || "bin").toLowerCase();
       const path = `${data.modality}/${crypto.randomUUID()}.${ext}`;
       const { error: upErr } = await supabaseAdmin.storage
         .from("library")
-        .upload(path, bytes, { contentType: data.mime_type, upsert: false });
+        .upload(path, bytes, { contentType: data.mime_type!, upsert: false });
       if (upErr) throw new Error(`Upload failed: ${upErr.message}`);
       storage_path = path;
 
       // Generate text representation for embedding
       const aiText =
         data.modality === "image"
-          ? await describeImage(data.data_url)
-          : await transcribeAudio(data.data_url, data.mime_type);
+          ? await describeImage(data.data_url!)
+          : await transcribeAudio(data.data_url!, data.mime_type!);
       text_content = aiText;
       embeddingSource = [data.title, data.description, aiText].filter(Boolean).join("\n");
     }
