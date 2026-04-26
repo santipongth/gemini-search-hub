@@ -112,8 +112,18 @@ function ItemPage() {
             </p>
           )}
           {item.modality !== "text" && item.text_content && (
-            <details className="text-sm text-muted-foreground">
-              <summary className="cursor-pointer hover:text-foreground">AI-generated description (used for matching)</summary>
+            <details
+              className="text-sm text-muted-foreground"
+              open={
+                queryTerms.length > 0 &&
+                queryTerms.some((t) =>
+                  item.text_content!.toLowerCase().includes(t),
+                )
+              }
+            >
+              <summary className="cursor-pointer hover:text-foreground">
+                AI-generated {item.modality === "audio" ? "transcript" : "description"} (used for matching)
+              </summary>
               <p className="mt-2 whitespace-pre-wrap">
                 {queryTerms.length > 0
                   ? highlightText(item.text_content, queryTerms)
