@@ -12,7 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as LibraryRouteImport } from './routes/library'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ItemIdRouteImport } from './routes/item.$id'
-import { Route as ApiSeedRouteImport } from './routes/api.seed'
+import { Route as ApiPublicSeedRouteImport } from './routes/api.public.seed'
 
 const LibraryRoute = LibraryRouteImport.update({
   id: '/library',
@@ -29,44 +29,44 @@ const ItemIdRoute = ItemIdRouteImport.update({
   path: '/item/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiSeedRoute = ApiSeedRouteImport.update({
-  id: '/api/seed',
-  path: '/api/seed',
+const ApiPublicSeedRoute = ApiPublicSeedRouteImport.update({
+  id: '/api/public/seed',
+  path: '/api/public/seed',
   getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/library': typeof LibraryRoute
-  '/api/seed': typeof ApiSeedRoute
   '/item/$id': typeof ItemIdRoute
+  '/api/public/seed': typeof ApiPublicSeedRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/library': typeof LibraryRoute
-  '/api/seed': typeof ApiSeedRoute
   '/item/$id': typeof ItemIdRoute
+  '/api/public/seed': typeof ApiPublicSeedRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/library': typeof LibraryRoute
-  '/api/seed': typeof ApiSeedRoute
   '/item/$id': typeof ItemIdRoute
+  '/api/public/seed': typeof ApiPublicSeedRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/library' | '/api/seed' | '/item/$id'
+  fullPaths: '/' | '/library' | '/item/$id' | '/api/public/seed'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/library' | '/api/seed' | '/item/$id'
-  id: '__root__' | '/' | '/library' | '/api/seed' | '/item/$id'
+  to: '/' | '/library' | '/item/$id' | '/api/public/seed'
+  id: '__root__' | '/' | '/library' | '/item/$id' | '/api/public/seed'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LibraryRoute: typeof LibraryRoute
-  ApiSeedRoute: typeof ApiSeedRoute
   ItemIdRoute: typeof ItemIdRoute
+  ApiPublicSeedRoute: typeof ApiPublicSeedRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -92,11 +92,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ItemIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/seed': {
-      id: '/api/seed'
-      path: '/api/seed'
-      fullPath: '/api/seed'
-      preLoaderRoute: typeof ApiSeedRouteImport
+    '/api/public/seed': {
+      id: '/api/public/seed'
+      path: '/api/public/seed'
+      fullPath: '/api/public/seed'
+      preLoaderRoute: typeof ApiPublicSeedRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -105,9 +105,18 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LibraryRoute: LibraryRoute,
-  ApiSeedRoute: ApiSeedRoute,
   ItemIdRoute: ItemIdRoute,
+  ApiPublicSeedRoute: ApiPublicSeedRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}

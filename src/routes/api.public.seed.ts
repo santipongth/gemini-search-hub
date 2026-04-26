@@ -34,7 +34,7 @@ async function urlToDataUrl(url: string): Promise<{ dataUrl: string; mime: strin
   return { dataUrl: `data:${mime};base64,${b64}`, mime, bytes: buf };
 }
 
-export const Route = createFileRoute("/api/seed")({
+export const Route = createFileRoute("/api/public/seed")({
   server: {
     handlers: {
       POST: async () => {
