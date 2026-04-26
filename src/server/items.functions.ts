@@ -96,6 +96,9 @@ const AddInput = z.object({
   data_url: z.string().optional(),
   mime_type: z.string().max(100).optional(),
   filename: z.string().max(200).optional(),
+  // Optional client-measured audio duration (seconds). Server still
+  // re-derives from file bytes when possible.
+  audio_duration_seconds: z.number().min(0).max(60 * 60).optional(),
 });
 
 export const addItem = createServerFn({ method: "POST" })
@@ -112,17 +115,17 @@ export const addItem = createServerFn({ method: "POST" })
         .filter(Boolean)
         .join("\n");
     } else {
-      // Structured server-side validation — collect ALL rule failures.
-      const failures = validateUploadedFile({
+      // Structured server-side validation — collect ALL rule failures
+      // (mime, size, audio duration) and tag each with the filename so
+      // the UI can show which upload attempt failed.
+      const { bytes } = runServerFileValidation({
         data_url: data.data_url,
         mime_type: data.mime_type,
         kind: data.modality,
+        filename: data.filename,
+        duration_hint: data.audio_duration_seconds,
       });
-      if (failures.length > 0) throwValidationError(failures);
 
-      // Safe to decode now (validateUploadedFile guarantees format).
-      const match = data.data_url!.match(/^data:([^;]+);base64,(.+)$/)!;
-      const bytes = Uint8Array.from(atob(match[2]), (c) => c.charCodeAt(0));
       const ext = (data.filename?.split(".").pop() || "bin").toLowerCase();
       const path = `${data.modality}/${crypto.randomUUID()}.${ext}`;
       const { error: upErr } = await supabaseAdmin.storage
