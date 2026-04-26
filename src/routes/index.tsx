@@ -112,6 +112,7 @@ function SearchPage() {
     if (!canSearch) return;
     setBusy(true);
     setInterpreted(null);
+    setServerFailures(null);
     try {
       const payload: {
         query_type: "text" | "image" | "audio";
@@ -138,7 +139,13 @@ function SearchPage() {
       setInterpreted(res.interpreted_query);
       setHasSearched(true);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Search failed");
+      const structured = parseServerError(e);
+      if (structured) {
+        setServerFailures(structured.failures);
+        toast.error("File rejected by server — see details below");
+      } else {
+        toast.error(e instanceof Error ? e.message : "Search failed");
+      }
     } finally {
       setBusy(false);
     }
