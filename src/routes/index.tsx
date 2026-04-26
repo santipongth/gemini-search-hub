@@ -196,6 +196,13 @@ function SearchPage() {
           <ValidationSummary kind={fileKind} file={file!} v={validation} />
         )}
 
+        {serverFailures && serverFailures.length > 0 && (
+          <ServerFailurePanel
+            failures={serverFailures}
+            onDismiss={() => setServerFailures(null)}
+          />
+        )}
+
         <div className="flex flex-col items-center gap-2 pt-1">
           <Button
             onClick={onSearch}
