@@ -1,5 +1,10 @@
 import { Link } from "@tanstack/react-router";
 import { FileText, ImageIcon, AudioLines } from "lucide-react";
+import {
+  highlightText,
+  findSnippet,
+  countMatchedTerms,
+} from "@/lib/highlight";
 
 export type ItemSummary = {
   id: string;
@@ -34,12 +39,48 @@ function ModalityBadge({ modality }: { modality: string }) {
   );
 }
 
-export function ItemCard({ item }: { item: ItemSummary }) {
+export function ItemCard({
+  item,
+  queryTerms = [],
+  queryType,
+}: {
+  item: ItemSummary;
+  queryTerms?: string[];
+  queryType?: "text" | "image" | "audio";
+}) {
   const url = publicUrl(item.storage_path);
+  const title = item.title ?? "Untitled";
+
+  // Build a snippet from the most relevant field (description or text_content),
+  // preferring whichever actually contains a query term.
+  const snippet =
+    findSnippet(item.description, queryTerms) ??
+    findSnippet(item.text_content, queryTerms) ??
+    null;
+
+  const matchCount = countMatchedTerms(
+    [item.title, item.description, item.text_content],
+    queryTerms,
+  );
+
+  // Pass query context onward so the item page can build its similarity panel.
+  const linkSearch =
+    queryTerms.length > 0 || queryType
+      ? {
+          q: queryTerms.join(" ") || undefined,
+          qt: queryType,
+          sim:
+            typeof item.similarity === "number"
+              ? Number(item.similarity.toFixed(4))
+              : undefined,
+        }
+      : undefined;
+
   return (
     <Link
       to="/item/$id"
       params={{ id: item.id }}
+      search={linkSearch as never}
       className="group block rounded-xl border border-border bg-card overflow-hidden hover:shadow-lg hover:border-primary/40 transition"
     >
       <div className="aspect-[4/3] bg-muted/40 flex items-center justify-center overflow-hidden">
@@ -53,7 +94,9 @@ export function ItemCard({ item }: { item: ItemSummary }) {
           </div>
         ) : (
           <div className="p-4 text-sm line-clamp-6 text-foreground/80 font-serif italic">
-            {item.text_content ?? item.description ?? "Text snippet"}
+            {queryTerms.length > 0 && item.text_content
+              ? highlightText(item.text_content, queryTerms)
+              : item.text_content ?? item.description ?? "Text snippet"}
           </div>
         )}
       </div>
@@ -66,9 +109,28 @@ export function ItemCard({ item }: { item: ItemSummary }) {
             </span>
           )}
         </div>
-        <div className="font-medium text-sm line-clamp-1">{item.title ?? "Untitled"}</div>
+        <div className="font-medium text-sm line-clamp-1">
+          {queryTerms.length > 0 ? highlightText(title, queryTerms) : title}
+        </div>
         {item.description && (
-          <div className="text-xs text-muted-foreground line-clamp-2">{item.description}</div>
+          <div className="text-xs text-muted-foreground line-clamp-2">
+            {queryTerms.length > 0
+              ? highlightText(item.description, queryTerms)
+              : item.description}
+          </div>
+        )}
+        {snippet && (
+          <div className="mt-1 rounded-md border border-primary/20 bg-primary/5 px-2 py-1.5 text-xs text-foreground/80 line-clamp-3">
+            <span className="text-[10px] uppercase tracking-wide text-primary font-medium mr-1">
+              Match
+            </span>
+            {highlightText(snippet, queryTerms)}
+          </div>
+        )}
+        {queryTerms.length > 0 && matchCount > 0 && (
+          <div className="text-[10px] text-muted-foreground">
+            {matchCount} matching term{matchCount === 1 ? "" : "s"}
+          </div>
         )}
       </div>
     </Link>
