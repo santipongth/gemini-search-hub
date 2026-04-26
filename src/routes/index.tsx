@@ -93,6 +93,7 @@ function SearchPage() {
   const [interpreted, setInterpreted] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+  const [serverFailures, setServerFailures] = useState<ValidationFailure[] | null>(null);
 
   const fileKind = tab === "image" ? "image" : tab === "audio" ? "audio" : null;
   const validation = useMemo(
