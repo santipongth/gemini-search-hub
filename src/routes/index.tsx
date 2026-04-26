@@ -252,15 +252,28 @@ function SearchPage() {
         )}
 
         <div className="flex flex-col items-center gap-2 pt-1">
-          <Button
-            onClick={onSearch}
-            disabled={!canSearch}
-            size="lg"
-            className="gap-2 px-10 h-12 rounded-full text-base font-medium bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-lg shadow-primary/25 hover:shadow-primary/40 hover:opacity-95 transition disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed"
-          >
-            {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <Search className="h-5 w-5" />}
-            {busy ? "Searching..." : "Search"}
-          </Button>
+          <div className="flex items-center gap-3">
+            <Button
+              onClick={onSearch}
+              disabled={!canSearch}
+              size="lg"
+              className="gap-2 px-10 h-12 rounded-full text-base font-medium bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-lg shadow-primary/25 hover:shadow-primary/40 hover:opacity-95 transition disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed"
+            >
+              {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <Search className="h-5 w-5" />}
+              {busy ? "Searching..." : "Search"}
+            </Button>
+            {busy && (
+              <Button
+                onClick={onCancel}
+                variant="outline"
+                size="lg"
+                className="gap-2 h-12 rounded-full px-6 border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+              >
+                <X className="h-4 w-4" />
+                Cancel
+              </Button>
+            )}
+          </div>
           {!canSearch && !busy && tab !== "text" && (
             <p className="text-xs text-muted-foreground">
               {!file
