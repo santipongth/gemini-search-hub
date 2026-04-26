@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { extractTerms, highlightText } from "@/lib/highlight";
+import { WhyItMatched } from "@/components/why-it-matched";
 
 const ItemSearch = z.object({
   q: z.string().optional(),
