@@ -254,20 +254,28 @@ function SearchPage() {
           <div className="text-center text-muted-foreground py-16">
             No matches. Try broadening your query.
           </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {results.map((r) => (
-              <ItemCard
-                key={r.id}
-                item={r}
-                queryTerms={extractTerms(
-                  tab === "text" ? text : interpreted ?? "",
-                )}
-                queryType={tab as "text" | "image" | "audio"}
-              />
-            ))}
-          </div>
-        )}
+        ) : results.length > 0 ? (
+          <>
+            <SortToolbar
+              count={results.length}
+              sortBy={sortBy}
+              onChange={setSortBy}
+              hasSimilarity={results.some((r) => typeof r.similarity === "number")}
+            />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {sortResults(results, sortBy).map((r) => (
+                <ItemCard
+                  key={r.id}
+                  item={r}
+                  queryTerms={extractTerms(
+                    tab === "text" ? text : interpreted ?? "",
+                  )}
+                  queryType={tab as "text" | "image" | "audio"}
+                />
+              ))}
+            </div>
+          </>
+        ) : null}
       </div>
     </div>
   );
