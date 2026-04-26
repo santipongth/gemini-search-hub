@@ -23,6 +23,67 @@ function throwValidationError(failures: ValidationFailure[]): never {
   throw new Error(JSON.stringify(payload));
 }
 
+// Decode a data URL into bytes, returning [bytes, base64Body] or null on a
+// malformed URL (validateUploadedFile already returns a structured failure
+// in that case, so we treat null here as "skip the deeper checks").
+function decodeDataUrl(dataUrl: string): Uint8Array | null {
+  const m = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
+  if (!m) return null;
+  try {
+    return Uint8Array.from(atob(m[2]), (c) => c.charCodeAt(0));
+  } catch {
+    return null;
+  }
+}
+
+// Centralized server-side validation for image/audio uploads. Runs the
+// shared rules, then — for audio — decodes the file bytes and verifies the
+// duration against MAX_AUDIO_SECONDS. Returns the decoded bytes on success
+// so callers can reuse them for storage upload, avoiding a second decode.
+function runServerFileValidation(args: {
+  data_url: string | undefined;
+  mime_type: string | undefined;
+  kind: "image" | "audio";
+  filename: string | undefined;
+  duration_hint?: number;
+}): { bytes: Uint8Array } {
+  const extra: ValidationFailure[] = [];
+  const bytes =
+    args.data_url && args.mime_type ? decodeDataUrl(args.data_url) : null;
+
+  // Authoritative server-side audio duration check (when we can parse it).
+  if (args.kind === "audio" && bytes && args.mime_type) {
+    const seconds = parseAudioDurationSeconds(bytes, args.mime_type);
+    if (seconds !== null && seconds > MAX_AUDIO_SECONDS) {
+      extra.push(makeAudioDurationFailure(seconds));
+    }
+  }
+
+  const failures = validateUploadedFile(
+    {
+      data_url: args.data_url,
+      mime_type: args.mime_type,
+      kind: args.kind,
+      filename: args.filename,
+      audio_duration_seconds: args.duration_hint,
+    },
+    extra,
+  );
+  if (failures.length > 0) throwValidationError(failures);
+  if (!bytes) {
+    // Validation passed but we couldn't decode — should never happen, but
+    // surface it as a structured failure rather than crashing.
+    throwValidationError([
+      {
+        rule: "data_url_format",
+        message: "File could not be decoded after validation.",
+        details: { filename: args.filename },
+      },
+    ]);
+  }
+  return { bytes };
+}
+
 // ---------- Add an item ----------
 
 const AddInput = z.object({
