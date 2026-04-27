@@ -59,6 +59,9 @@ function AdminLibraryPage() {
   const [scope, setScope] = useState<"mine" | "all">("mine");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [editing, setEditing] = useState<AdminItem | null>(null);
+  const [deleting, setDeleting] = useState<AdminItem | null>(null);
+  const [bulkConfirmOpen, setBulkConfirmOpen] = useState(false);
+  const [deleteBusy, setDeleteBusy] = useState(false);
 
   const reload = async () => {
     setLoading(true);
