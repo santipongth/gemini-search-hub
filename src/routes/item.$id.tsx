@@ -151,9 +151,11 @@ function ItemPage() {
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
               Find similar
             </Button>
-            <Button onClick={onDelete} variant="outline" className="gap-2">
-              <Trash2 className="h-4 w-4" /> Delete
-            </Button>
+            {isAdmin && (
+              <Button onClick={onDelete} variant="outline" className="gap-2">
+                <Trash2 className="h-4 w-4" /> Delete
+              </Button>
+            )}
           </div>
         </div>
       </div>
