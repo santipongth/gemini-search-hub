@@ -47,6 +47,7 @@ export function ItemCard({
   queryType,
   rawQuery,
   onClick,
+  onImageZoom,
 }: {
   item: ItemSummary;
   queryTerms?: string[];
@@ -54,6 +55,8 @@ export function ItemCard({
   /** Original raw search query string from the URL — used to round-trip back to /results exactly. */
   rawQuery?: string;
   onClick?: () => void;
+  /** When provided and the item is an image, shows a zoom button that opens a lightbox instead of navigating. */
+  onImageZoom?: (id: string) => void;
 }) {
   const url = publicUrl(item.storage_path);
   const title = item.title ?? "Untitled";
