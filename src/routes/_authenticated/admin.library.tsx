@@ -304,13 +304,18 @@ function AdminItemTile({
               className="h-full w-full object-cover"
             />
           ) : item.modality === "audio" && item.storage_path ? (
-            <div className="p-4 w-full">
+            <div
+              className="p-4 w-full"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+            >
               <AudioLines className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
               <audio
                 controls
                 src={`${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/library/${item.storage_path}`}
                 className="w-full"
-                onClick={(e) => e.preventDefault()}
               />
             </div>
           ) : (
