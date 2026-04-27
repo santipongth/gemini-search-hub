@@ -90,19 +90,24 @@ export function ItemCard({
       params={{ id: item.id }}
       search={linkSearch as never}
       onClick={onClick}
-      className="group block rounded-2xl border border-border/60 bg-card overflow-hidden hover:shadow-elegant hover:border-primary/40 hover:-translate-y-0.5 transition-all duration-200"
+      aria-label={`Open ${item.modality} item: ${title}`}
+      className="group block rounded-2xl border border-border/60 bg-card overflow-hidden hover:shadow-elegant hover:border-primary/40 hover:-translate-y-0.5 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
     >
-      <div className="aspect-[4/3] bg-muted/40 flex items-center justify-center overflow-hidden">
+      <div className="aspect-[4/3] bg-muted/40 flex items-center justify-center overflow-hidden relative">
         {item.modality === "image" && url ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={url} alt={item.title ?? ""} className="h-full w-full object-cover group-hover:scale-105 transition" />
-        ) : item.modality === "audio" ? (
-          <div className="p-4 w-full">
-            <AudioLines className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
-            {url && <audio controls src={url} className="w-full" onClick={(e) => e.preventDefault()} />}
+          <img
+            src={url}
+            alt={item.title ?? "Library image"}
+            loading="lazy"
+            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.04]"
+          />
+        ) : item.modality === "audio" && url ? (
+          <div className="h-full w-full bg-gradient-to-br from-primary/8 via-card to-accent/8">
+            <AudioWaveformPreview src={url} seed={item.id} />
           </div>
         ) : (
-          <div className="p-4 text-sm line-clamp-6 text-foreground/80 font-serif italic">
+          <div className="p-5 text-sm line-clamp-6 text-foreground/80 font-serif italic leading-relaxed">
             {queryTerms.length > 0 && item.text_content
               ? highlightText(item.text_content, queryTerms)
               : item.text_content ?? item.description ?? "Text snippet"}
