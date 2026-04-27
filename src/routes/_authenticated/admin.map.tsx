@@ -293,6 +293,26 @@ function MapPage() {
               ))}
             </div>
 
+            {/* Focused-cluster legend */}
+            {q && focusedClusterIds.size > 0 && (
+              <div className="absolute top-4 left-32 max-w-[14rem] rounded-lg border border-primary/40 bg-background/90 backdrop-blur p-2.5 text-xs shadow-sm">
+                <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-muted-foreground mb-1">
+                  <Crosshair className="h-3 w-3" />
+                  Focused cluster
+                </div>
+                <div className="font-medium truncate" title={q}>
+                  “{q}”
+                </div>
+                <div className="text-muted-foreground mt-1 leading-relaxed">
+                  {focusedClusterIds.size} node{focusedClusterIds.size === 1 ? "" : "s"}
+                  {" · "}
+                  {focusedEdgeCount} edge{focusedEdgeCount === 1 ? "" : "s"}
+                  {" · "}
+                  {matches.length} match{matches.length === 1 ? "" : "es"}
+                </div>
+              </div>
+            )}
+
             {/* Hover tooltip */}
             {hover && (
               <div className="absolute bottom-4 right-4 max-w-xs rounded-lg border border-border bg-background/95 backdrop-blur p-3 text-sm shadow-lg pointer-events-none">
