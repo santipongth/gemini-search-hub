@@ -363,7 +363,7 @@ async function isAdmin(userId: string): Promise<boolean> {
   return !!roleRow;
 }
 
-export async function assertAdmin(userId: string): Promise<void> {
+async function assertAdmin(userId: string): Promise<void> {
   if (!(await isAdmin(userId))) {
     throw new Error("Forbidden: admin role required");
   }
