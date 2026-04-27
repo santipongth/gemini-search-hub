@@ -281,8 +281,11 @@ function SearchPage() {
               onClick={onSearch}
               disabled={!canSearch}
               size="lg"
-              className="gap-2 px-10 h-12 rounded-full text-base font-medium bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-lg shadow-primary/25 hover:shadow-primary/40 hover:opacity-95 transition disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed"
+              className="gap-2 px-10 h-12 rounded-full text-base font-medium bg-gradient-primary text-primary-foreground shadow-elegant hover:shadow-glow hover:opacity-95 transition disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed"
             >
+              {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <Search className="h-5 w-5" />}
+              {busy ? "Searching..." : "Search"}
+            </Button>
               {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <Search className="h-5 w-5" />}
               {busy ? "Searching..." : "Search"}
             </Button>
