@@ -137,6 +137,7 @@ function ResultsPage() {
               item={r}
               queryTerms={queryTerms}
               queryType="text"
+              rawQuery={search.q}
               onClick={() => {
                 import("@/server/analytics.functions").then(({ logResultClick }) => {
                   logResultClick({
