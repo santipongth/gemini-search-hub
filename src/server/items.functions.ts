@@ -287,13 +287,20 @@ export const searchItems = createServerFn({ method: "POST" })
 export const findSimilar = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => z.object({ id: z.string().uuid(), limit: z.number().int().min(1).max(50).default(10) }).parse(input))
   .handler(async ({ data }) => {
-    const { data: item, error } = await supabaseAdmin
+    const { data: itemRaw, error } = await supabaseAdmin
       .from("items")
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .select("id, search_text, embedding" as any)
+      .select("id, search_text")
       .eq("id", data.id)
       .single();
-    if (error || !item) throw new Error("Item not found");
+    if (error || !itemRaw) throw new Error("Item not found");
+    // Fetch embedding via raw SQL-style cast (column not in generated types yet).
+    const { data: embRow } = await supabaseAdmin
+      .from("items")
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .select("embedding" as any)
+      .eq("id", data.id)
+      .single();
+    const item = { ...itemRaw, embedding: (embRow as { embedding?: number[] | string | null } | null)?.embedding ?? null };
 
     // Prefer existing embedding; fall back to lexical when missing.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
