@@ -16,37 +16,88 @@ export type Database = {
     Tables: {
       items: {
         Row: {
+          content_hash: string | null
           created_at: string
           description: string | null
           id: string
           mime_type: string | null
           modality: string
+          owner_id: string | null
           search_text: string | null
           storage_path: string | null
           text_content: string | null
           title: string | null
+          visibility: string
         }
         Insert: {
+          content_hash?: string | null
           created_at?: string
           description?: string | null
           id?: string
           mime_type?: string | null
           modality: string
+          owner_id?: string | null
           search_text?: string | null
           storage_path?: string | null
           text_content?: string | null
           title?: string | null
+          visibility?: string
         }
         Update: {
+          content_hash?: string | null
           created_at?: string
           description?: string | null
           id?: string
           mime_type?: string | null
           modality?: string
+          owner_id?: string | null
           search_text?: string | null
           storage_path?: string | null
           text_content?: string | null
           title?: string | null
+          visibility?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
         }
         Relationships: []
       }
@@ -64,6 +115,13 @@ export type Database = {
           source_text: string
           trigram_similarity: number
         }[]
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
       }
       match_items: {
         Args: {
@@ -86,7 +144,7 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -213,6 +271,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "user"],
+    },
   },
 } as const

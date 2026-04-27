@@ -31,7 +31,7 @@ export const Route = createFileRoute("/item/$id")({
   errorComponent: ({ error }) => (
     <div className="container mx-auto px-6 py-20 text-center">
       <p className="text-muted-foreground">{error.message}</p>
-      <Link to="/library" className="text-primary underline mt-4 inline-block">Back to library</Link>
+      <Link to="/" className="text-primary underline mt-4 inline-block">Back to library</Link>
     </div>
   ),
 });
@@ -64,7 +64,7 @@ function ItemPage() {
     try {
       await deleteItem({ data: { id: item.id } });
       toast.success("Deleted");
-      router.navigate({ to: "/library" });
+      router.navigate({ to: "/" });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed");
     }
@@ -72,7 +72,7 @@ function ItemPage() {
 
   return (
     <div className="container mx-auto px-6 py-10 max-w-4xl">
-      <Link to="/library" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6">
+      <Link to="/" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6">
         <ArrowLeft className="h-4 w-4" /> Back to library
       </Link>
 

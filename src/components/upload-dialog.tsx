@@ -24,32 +24,39 @@ export function UploadDialog({ onAdded }: { onAdded?: () => void }) {
   const [file, setFile] = useState<FilePayload | null>(null);
   const [busy, setBusy] = useState(false);
   const [serverFailures, setServerFailures] = useState<ValidationFailure[] | null>(null);
+  const [visibility, setVisibility] = useState<"public" | "private">("public");
+  const [duplicate, setDuplicate] = useState<{ id: string; title: string | null } | null>(null);
 
   const reset = () => {
     setTitle(""); setDesc(""); setText(""); setFile(null); setTab("text");
-    setServerFailures(null);
+    setServerFailures(null); setDuplicate(null); setVisibility("public");
   };
 
-  // Auto-reset server failures when the active file or tab changes so the
-  // user can retry the upload immediately without dismissing anything.
   useEffect(() => {
     setServerFailures(null);
-  }, [file?.data_url, tab]);
+    setDuplicate(null);
+  }, [file?.data_url, tab, text]);
 
-  const submit = async () => {
+  const doSubmit = async (allowDuplicate: boolean) => {
     setBusy(true);
     setServerFailures(null);
+    setDuplicate(null);
     try {
+      const base = {
+        title: title || undefined,
+        description: desc || undefined,
+        visibility,
+        allow_duplicate: allowDuplicate,
+      };
       if (tab === "text") {
         if (!text.trim()) throw new Error("Enter some text");
-        await addItem({ data: { modality: "text", title: title || undefined, description: desc || undefined, text_content: text } });
+        await addItem({ data: { ...base, modality: "text", text_content: text } });
       } else {
         if (!file) throw new Error("Select a file");
         await addItem({
           data: {
+            ...base,
             modality: tab as "image" | "audio",
-            title: title || undefined,
-            description: desc || undefined,
             data_url: file.data_url,
             mime_type: file.mime_type,
             filename: file.filename,
@@ -62,25 +69,41 @@ export function UploadDialog({ onAdded }: { onAdded?: () => void }) {
       setOpen(false);
       onAdded?.();
     } catch (e) {
-      let parsed: ValidationFailure[] | null = null;
+      // Try to parse structured error payloads.
       if (e instanceof Error) {
         try {
           const obj: unknown = JSON.parse(e.message);
-          if (isValidationErrorPayload(obj)) parsed = obj.failures;
+          if (isValidationErrorPayload(obj)) {
+            setServerFailures(obj.failures);
+            toast.error("File rejected — see details below");
+            return;
+          }
+          if (
+            obj && typeof obj === "object" && "code" in obj &&
+            (obj as { code: string }).code === "DUPLICATE_ITEM"
+          ) {
+            const d = obj as unknown as { existing_id: string; existing_title: string | null };
+            setDuplicate({ id: d.existing_id, title: d.existing_title });
+            toast.warning("Duplicate detected");
+            return;
+          }
         } catch {
           // not JSON
         }
       }
-      if (parsed) {
-        setServerFailures(parsed);
-        toast.error("File rejected — see details below");
+      const msg = e instanceof Error ? e.message : "Failed to add";
+      if (msg.includes("Unauthorized")) {
+        toast.error("Please sign in to upload");
       } else {
-        toast.error(e instanceof Error ? e.message : "Failed to add");
+        toast.error(msg);
       }
     } finally {
       setBusy(false);
     }
   };
+
+  const submit = () => doSubmit(false);
+  const submitForce = () => doSubmit(true);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -160,6 +183,36 @@ export function UploadDialog({ onAdded }: { onAdded?: () => void }) {
           </div>
         </Tabs>
 
+        <div className="flex items-center gap-3 pt-1">
+          <Label className="text-sm">Visibility</Label>
+          <div className="inline-flex rounded-md border border-border p-0.5 text-xs">
+            <button
+              type="button"
+              onClick={() => setVisibility("public")}
+              className={`px-3 py-1 rounded ${visibility === "public" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
+            >Public</button>
+            <button
+              type="button"
+              onClick={() => setVisibility("private")}
+              className={`px-3 py-1 rounded ${visibility === "private" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
+            >Private</button>
+          </div>
+        </div>
+
+        {duplicate && (
+          <div className="mt-3 rounded-xl border border-amber-500/40 bg-amber-500/5 p-3 text-sm">
+            <div className="font-medium text-amber-700 mb-1">Duplicate detected</div>
+            <div className="text-muted-foreground text-xs">
+              An identical item already exists in your library
+              {duplicate.title ? <>: <span className="font-medium text-foreground">{duplicate.title}</span></> : null}.
+            </div>
+            <div className="mt-2 flex gap-2">
+              <Button size="sm" variant="outline" onClick={() => setDuplicate(null)}>Cancel</Button>
+              <Button size="sm" onClick={submitForce} disabled={busy}>Upload anyway</Button>
+            </div>
+          </div>
+        )}
+
         {serverFailures && serverFailures.length > 0 && (
           <div className="mt-4 rounded-xl border border-destructive/40 bg-destructive/5 p-3 text-sm">
             <div className="flex items-center gap-2 font-medium text-destructive">
@@ -184,7 +237,7 @@ export function UploadDialog({ onAdded }: { onAdded?: () => void }) {
           </div>
         )}
 
-        <Button onClick={submit} disabled={busy} className="mt-4 gap-2">
+        <Button onClick={submit} disabled={busy || !!duplicate} className="mt-4 gap-2">
           {busy && <Loader2 className="h-4 w-4 animate-spin" />}
           {busy ? "Embedding..." : "Add to library"}
         </Button>
