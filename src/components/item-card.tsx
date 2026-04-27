@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { FileText, ImageIcon, AudioLines } from "lucide-react";
+import { FileText, ImageIcon, AudioLines, Maximize2 } from "lucide-react";
 import {
   highlightText,
   findSnippet,
