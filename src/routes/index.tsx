@@ -218,9 +218,9 @@ function SearchPage() {
           </p>
         </div>
 
-      <div className="rounded-3xl border border-border/60 bg-card/80 backdrop-blur shadow-elegant p-4 sm:p-6 space-y-5">
+      <div role="search" aria-label="Multimodal search" className="rounded-3xl border border-border/60 bg-card/80 backdrop-blur shadow-elegant p-4 sm:p-6 space-y-5">
         <Tabs value={tab} onValueChange={(v) => { if (busy) return; setTab(v); setFile(null); }}>
-          <TabsList className="grid grid-cols-3 w-full max-w-sm mx-auto">
+          <TabsList aria-label="Search input type" className="grid grid-cols-3 w-full max-w-sm mx-auto">
             <TabsTrigger value="text" disabled={busy}>Text</TabsTrigger>
             <TabsTrigger value="image" disabled={busy}>Image</TabsTrigger>
             <TabsTrigger value="audio" disabled={busy}>Audio</TabsTrigger>
@@ -234,14 +234,17 @@ function SearchPage() {
           />
 
           <TabsContent value="text" className="mt-4">
+            <label htmlFor="search-text" className="sr-only">Search query text</label>
             <Textarea
+              id="search-text"
               value={text}
               onChange={(e) => setText(e.target.value)}
               placeholder={busy ? "Searching..." : "e.g., a peaceful sunset over mountains, or rainy day jazz..."}
               rows={3}
               disabled={busy}
               aria-busy={busy}
-              className="resize-none text-base disabled:opacity-60 disabled:cursor-not-allowed"
+              aria-label="Search query"
+              className="resize-none text-base disabled:opacity-60 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) onSearch(); }}
             />
           </TabsContent>
