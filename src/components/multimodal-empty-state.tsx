@@ -38,8 +38,8 @@ export function MultimodalEmptyState({
       </div>
       <h2 className="text-lg font-semibold">Start a multimodal search</h2>
       <p className="mt-1 text-sm text-muted-foreground max-w-md mx-auto">
-        Mix text, images, and audio. Lumen embeds your query with Gemini and ranks
-        every item in the library by semantic similarity.
+        Type a question, drop an image, or record audio. Lumen finds semantically
+        similar items across all modalities using semantic similarity.
       </p>
 
       <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-3 text-left">
