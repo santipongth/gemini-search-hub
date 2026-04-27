@@ -1,19 +1,15 @@
 import { createFileRoute, useRouter, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { listItems, deleteItem, updateItem, bulkDeleteItems } from "@/server/items.functions";
-import { ItemCard, type ItemSummary } from "@/components/item-card";
+import { listItems, deleteItem, bulkDeleteItems } from "@/server/items.functions";
+import { listTags } from "@/server/tags.functions";
+import { type ItemSummary } from "@/components/item-card";
 import { UploadDialog } from "@/components/upload-dialog";
+import { BulkUploadDialog } from "@/components/library/bulk-upload-dialog";
+import { EditItemDialog } from "@/components/library/edit-item-dialog";
+import { TagChips } from "@/components/library/tag-input";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -22,7 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, Trash2, Pencil, Eye, EyeOff, Search as SearchIcon, ShieldAlert } from "lucide-react";
+import { Loader2, Trash2, Pencil, EyeOff, Search as SearchIcon, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 
