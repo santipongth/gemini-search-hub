@@ -81,8 +81,12 @@ function ItemPage() {
 
   return (
     <div className="container mx-auto px-6 py-10 max-w-4xl">
-      <Link to="/" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6">
-        <ArrowLeft className="h-4 w-4" /> Back to library
+      <Link
+        to={backTo}
+        search={backSearch as never}
+        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6"
+      >
+        <ArrowLeft className="h-4 w-4" /> {backLabel}
       </Link>
 
       <div className="rounded-2xl border border-border bg-card overflow-hidden">
