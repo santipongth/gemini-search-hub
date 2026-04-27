@@ -5,20 +5,24 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Design system definition.
+ * Lumen design system.
  *
- * The @theme inline block maps CSS custom properties to Tailwind utility
- * classes (e.g. --color-primary -> bg-primary, text-primary).
+ * Aesthetic: modern editorial light theme with violet→amber accent gradients,
+ * generous radius, soft layered shadows, and a refined display/body type pair.
  *
- * The :root and .dark blocks define the actual color values using oklch.
- * All colors MUST use oklch format.
+ * - Display: "Space Grotesk" (geometric, slightly playful — used for headings)
+ * - Body:    "Inter"         (workhorse sans — used everywhere else)
  *
- * To add a new semantic color:
- * 1. Add the variable to :root (light value) and .dark (dark value)
- * 2. Register it in @theme inline as --color-<name>: var(--<name>)
+ * All colors use oklch. Add new tokens to :root + .dark, then register them
+ * in @theme inline so Tailwind utility classes pick them up.
  */
 
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap");
+
 @theme inline {
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Space Grotesk", "Inter", ui-sans-serif, system-ui, sans-serif;
+
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -26,6 +30,7 @@
   --radius-2xl: calc(var(--radius) + 8px);
   --radius-3xl: calc(var(--radius) + 12px);
   --radius-4xl: calc(var(--radius) + 16px);
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -34,6 +39,7 @@
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-glow: var(--primary-glow);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
@@ -62,7 +68,7 @@
 }
 
 :root {
-  --radius: 0.75rem;
+  --radius: 0.875rem;
   --background: oklch(0.99 0.005 90);
   --foreground: oklch(0.18 0.02 280);
   --card: oklch(1 0 0);
@@ -71,17 +77,30 @@
   --popover-foreground: oklch(0.18 0.02 280);
   --primary: oklch(0.55 0.22 290);
   --primary-foreground: oklch(0.99 0.005 90);
+  --primary-glow: oklch(0.72 0.2 310);
   --secondary: oklch(0.96 0.01 280);
   --secondary-foreground: oklch(0.25 0.04 280);
   --muted: oklch(0.96 0.008 280);
   --muted-foreground: oklch(0.5 0.02 280);
-  --accent: oklch(0.72 0.18 50);
-  --accent-foreground: oklch(0.18 0.02 280);
+  --accent: oklch(0.78 0.16 60);
+  --accent-foreground: oklch(0.2 0.02 280);
   --destructive: oklch(0.6 0.22 27);
   --destructive-foreground: oklch(0.99 0.005 90);
   --border: oklch(0.91 0.012 280);
   --input: oklch(0.94 0.01 280);
   --ring: oklch(0.55 0.22 290);
+
+  /* Gradients & elevations */
+  --gradient-primary: linear-gradient(135deg, var(--primary) 0%, var(--primary-glow) 50%, var(--accent) 100%);
+  --gradient-subtle: linear-gradient(180deg, color-mix(in oklab, var(--primary) 6%, transparent) 0%, transparent 70%);
+  --gradient-mesh:
+    radial-gradient(at 12% 8%, color-mix(in oklab, var(--primary) 22%, transparent) 0px, transparent 55%),
+    radial-gradient(at 88% 0%, color-mix(in oklab, var(--accent) 24%, transparent) 0px, transparent 50%),
+    radial-gradient(at 50% 100%, color-mix(in oklab, var(--primary-glow) 18%, transparent) 0px, transparent 60%);
+  --shadow-soft: 0 1px 2px oklch(0 0 0 / 0.04), 0 4px 12px oklch(0 0 0 / 0.04);
+  --shadow-elegant: 0 10px 40px -12px color-mix(in oklab, var(--primary) 30%, transparent);
+  --shadow-glow: 0 0 40px -8px color-mix(in oklab, var(--primary-glow) 50%, transparent);
+
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
@@ -98,25 +117,37 @@
 }
 
 .dark {
-  --background: oklch(0.129 0.042 264.695);
-  --foreground: oklch(0.984 0.003 247.858);
-  --card: oklch(0.208 0.042 265.755);
-  --card-foreground: oklch(0.984 0.003 247.858);
-  --popover: oklch(0.208 0.042 265.755);
-  --popover-foreground: oklch(0.984 0.003 247.858);
-  --primary: oklch(0.929 0.013 255.508);
-  --primary-foreground: oklch(0.208 0.042 265.755);
-  --secondary: oklch(0.279 0.041 260.031);
-  --secondary-foreground: oklch(0.984 0.003 247.858);
-  --muted: oklch(0.279 0.041 260.031);
-  --muted-foreground: oklch(0.704 0.04 256.788);
-  --accent: oklch(0.279 0.041 260.031);
-  --accent-foreground: oklch(0.984 0.003 247.858);
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.984 0.003 247.858);
-  --border: oklch(1 0 0 / 10%);
+  --background: oklch(0.16 0.02 280);
+  --foreground: oklch(0.97 0.005 280);
+  --card: oklch(0.21 0.025 280);
+  --card-foreground: oklch(0.97 0.005 280);
+  --popover: oklch(0.21 0.025 280);
+  --popover-foreground: oklch(0.97 0.005 280);
+  --primary: oklch(0.72 0.2 295);
+  --primary-foreground: oklch(0.16 0.02 280);
+  --primary-glow: oklch(0.78 0.18 320);
+  --secondary: oklch(0.27 0.03 280);
+  --secondary-foreground: oklch(0.97 0.005 280);
+  --muted: oklch(0.27 0.03 280);
+  --muted-foreground: oklch(0.72 0.02 280);
+  --accent: oklch(0.78 0.16 60);
+  --accent-foreground: oklch(0.18 0.02 280);
+  --destructive: oklch(0.7 0.2 22);
+  --destructive-foreground: oklch(0.97 0.005 280);
+  --border: oklch(1 0 0 / 12%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.551 0.027 264.364);
+  --ring: oklch(0.72 0.2 295);
+
+  --gradient-primary: linear-gradient(135deg, var(--primary) 0%, var(--primary-glow) 50%, var(--accent) 100%);
+  --gradient-subtle: linear-gradient(180deg, color-mix(in oklab, var(--primary) 12%, transparent) 0%, transparent 70%);
+  --gradient-mesh:
+    radial-gradient(at 12% 8%, color-mix(in oklab, var(--primary) 30%, transparent) 0px, transparent 55%),
+    radial-gradient(at 88% 0%, color-mix(in oklab, var(--accent) 28%, transparent) 0px, transparent 50%),
+    radial-gradient(at 50% 100%, color-mix(in oklab, var(--primary-glow) 22%, transparent) 0px, transparent 60%);
+  --shadow-soft: 0 1px 2px oklch(0 0 0 / 0.3), 0 8px 24px oklch(0 0 0 / 0.25);
+  --shadow-elegant: 0 10px 40px -12px color-mix(in oklab, var(--primary) 50%, transparent);
+  --shadow-glow: 0 0 60px -8px color-mix(in oklab, var(--primary-glow) 60%, transparent);
+
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.769 0.188 70.08);
@@ -137,8 +168,53 @@
     border-color: var(--color-border);
   }
 
+  html {
+    font-family: var(--font-sans);
+  }
+
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
+    font-feature-settings: "cv11", "ss01", "ss03";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  .font-display {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+  }
+
+  /* Selection */
+  ::selection {
+    background-color: color-mix(in oklab, var(--primary) 25%, transparent);
+    color: var(--foreground);
+  }
+}
+
+@layer utilities {
+  .bg-gradient-primary {
+    background-image: var(--gradient-primary);
+  }
+  .bg-gradient-mesh {
+    background-image: var(--gradient-mesh);
+  }
+  .bg-gradient-subtle {
+    background-image: var(--gradient-subtle);
+  }
+  .text-gradient-primary {
+    background-image: var(--gradient-primary);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .shadow-soft {
+    box-shadow: var(--shadow-soft);
+  }
+  .shadow-elegant {
+    box-shadow: var(--shadow-elegant);
+  }
+  .shadow-glow {
+    box-shadow: var(--shadow-glow);
   }
 }

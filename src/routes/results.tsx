@@ -92,29 +92,34 @@ function ResultsPage() {
   const queryTerms = extractTerms(interpreted ?? search.q);
 
   return (
-    <div className="container mx-auto px-6 py-8 max-w-5xl">
-      <Link to="/" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4">
+    <div className="container mx-auto px-6 py-10 max-w-5xl">
+      <Link to="/" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-5 transition-colors">
         <ArrowLeft className="h-4 w-4" /> New search
       </Link>
 
-      <form onSubmit={onSubmit} className="flex gap-2 mb-6">
+      <form onSubmit={onSubmit} className="flex gap-2 mb-8">
         <div className="relative flex-1">
-          <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <SearchIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             value={text}
             onChange={(e) => setText(e.target.value)}
             placeholder="Search the library..."
-            className="pl-9 h-11 text-base"
+            className="pl-10 h-12 rounded-full text-base bg-card border-border/60 shadow-soft focus-visible:ring-2 focus-visible:ring-primary/40"
             disabled={busy}
           />
         </div>
-        <Button type="submit" disabled={busy || !text.trim()} size="lg" className="gap-2">
+        <Button
+          type="submit"
+          disabled={busy || !text.trim()}
+          size="lg"
+          className="gap-2 h-12 px-6 rounded-full bg-gradient-primary text-primary-foreground shadow-elegant hover:shadow-glow transition disabled:opacity-50 disabled:shadow-none"
+        >
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <SearchIcon className="h-4 w-4" />}
           Search
         </Button>
       </form>
 
-      <div className="mb-4 text-sm text-muted-foreground">
+      <div className="mb-5 text-sm text-muted-foreground">
         Results for <span className="font-medium text-foreground">"{search.q}"</span>
         {results && <> · {results.length} match{results.length === 1 ? "" : "es"}</>}
       </div>

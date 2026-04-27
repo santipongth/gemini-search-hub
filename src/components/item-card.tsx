@@ -89,7 +89,7 @@ export function ItemCard({
       params={{ id: item.id }}
       search={linkSearch as never}
       onClick={onClick}
-      className="group block rounded-xl border border-border bg-card overflow-hidden hover:shadow-lg hover:border-primary/40 transition"
+      className="group block rounded-2xl border border-border/60 bg-card overflow-hidden hover:shadow-elegant hover:border-primary/40 hover:-translate-y-0.5 transition-all duration-200"
     >
       <div className="aspect-[4/3] bg-muted/40 flex items-center justify-center overflow-hidden">
         {item.modality === "image" && url ? (
