@@ -84,12 +84,56 @@ function Header() {
               {isAdmin ? "Admin" : "My library"}
             </Link>
           )}
+          {import.meta.env.DEV && <DevErrorTrigger />}
           <div className="ml-2">
             <UserMenu />
           </div>
         </nav>
       </div>
     </header>
+  );
+}
+
+function DevErrorTrigger() {
+  return (
+    <div className="flex items-center gap-1">
+      <button
+        type="button"
+        onClick={() => {
+          // Genuine uncaught runtime error — should surface as a toast.
+          setTimeout(() => {
+            throw new Error("Dev test: genuine runtime error");
+          }, 0);
+        }}
+        className="px-2 py-1 rounded-md text-xs border border-destructive/40 text-destructive hover:bg-destructive/10"
+        title="Throws a real runtime error (dev only)"
+      >
+        Throw error
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          // Should be silently filtered (ResizeObserver noise pattern).
+          setTimeout(() => {
+            throw new Error("ResizeObserver loop limit exceeded");
+          }, 0);
+        }}
+        className="px-2 py-1 rounded-md text-xs border border-border text-muted-foreground hover:bg-muted"
+        title="Throws a noisy error that should be filtered (dev only)"
+      >
+        Throw noise
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          void Promise.reject(new Error("Dev test: unhandled rejection"));
+        }}
+        className="px-2 py-1 rounded-md text-xs border border-destructive/40 text-destructive hover:bg-destructive/10"
+        title="Triggers an unhandled promise rejection (dev only)"
+      >
+        Reject
+      </button>
+    </div>
   );
 }
 
