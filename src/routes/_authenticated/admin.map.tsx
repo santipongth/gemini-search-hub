@@ -11,8 +11,8 @@ export const Route = createFileRoute("/_authenticated/admin/map")({
 });
 
 const MODALITY_COLOR: Record<string, string> = {
-  text: "hsl(var(--primary))",
-  image: "hsl(var(--accent))",
+  text: "var(--primary)",
+  image: "var(--accent)",
   audio: "hsl(142, 70%, 45%)",
 };
 
@@ -99,7 +99,7 @@ function MapPage() {
                       y1={py(a)}
                       x2={px(b)}
                       y2={py(b)}
-                      stroke="hsl(var(--muted-foreground))"
+                      stroke="var(--muted-foreground)"
                       strokeWidth={Math.max(0.4, e.weight * 1.6)}
                     />
                   );
@@ -115,8 +115,8 @@ function MapPage() {
                       cx={px(n)}
                       cy={py(n)}
                       r={r}
-                      fill={MODALITY_COLOR[n.modality] ?? "hsl(var(--muted-foreground))"}
-                      stroke="hsl(var(--background))"
+                      fill={MODALITY_COLOR[n.modality] ?? "var(--muted-foreground)"}
+                      stroke="var(--background)"
                       strokeWidth={1.5}
                       className="cursor-pointer transition-opacity hover:opacity-80"
                       onMouseEnter={() => setHover(n)}

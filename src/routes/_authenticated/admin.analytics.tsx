@@ -23,7 +23,7 @@ export const Route = createFileRoute("/_authenticated/admin/analytics")({
   component: AnalyticsPage,
 });
 
-const MODALITY_COLORS = ["hsl(var(--primary))", "hsl(var(--accent))", "hsl(142, 70%, 45%)"];
+const MODALITY_COLORS = ["var(--primary)", "var(--accent)", "hsl(142, 70%, 45%)"];
 
 function AnalyticsPage() {
   const [days, setDays] = useState<number>(30);
@@ -118,25 +118,25 @@ function AnalyticsPage() {
           ) : (
             <ResponsiveContainer width="100%" height={240}>
               <LineChart data={data.searches_by_day}>
-                <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="3 3" />
+                <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" />
                 <XAxis
                   dataKey="day"
                   tickFormatter={(d: string) => d.slice(5)}
-                  stroke="hsl(var(--muted-foreground))"
+                  stroke="var(--muted-foreground)"
                   fontSize={11}
                 />
-                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} allowDecimals={false} />
+                <YAxis stroke="var(--muted-foreground)" fontSize={11} allowDecimals={false} />
                 <Tooltip
                   contentStyle={{
-                    background: "hsl(var(--card))",
-                    border: "1px solid hsl(var(--border))",
+                    background: "var(--card)",
+                    border: "1px solid var(--border)",
                     fontSize: 12,
                   }}
                 />
                 <Line
                   type="monotone"
                   dataKey="cnt"
-                  stroke="hsl(var(--primary))"
+                  stroke="var(--primary)"
                   strokeWidth={2}
                   dot={false}
                 />
@@ -167,8 +167,8 @@ function AnalyticsPage() {
                 <Legend wrapperStyle={{ fontSize: 12 }} />
                 <Tooltip
                   contentStyle={{
-                    background: "hsl(var(--card))",
-                    border: "1px solid hsl(var(--border))",
+                    background: "var(--card)",
+                    border: "1px solid var(--border)",
                     fontSize: 12,
                   }}
                 />
