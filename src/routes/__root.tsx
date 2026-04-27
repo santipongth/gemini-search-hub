@@ -2,6 +2,8 @@ import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/r
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/sonner";
 import { useState } from "react";
+import { AuthProvider, useAuth } from "@/hooks/use-auth";
+import { UserMenu } from "@/components/auth/user-menu";
 
 import appCss from "../styles.css?url";
 
@@ -57,6 +59,7 @@ function RootShell({ children }: { children: React.ReactNode }) {
 }
 
 function Header() {
+  const { isAdmin, user } = useAuth();
   return (
     <header className="border-b border-border/60 bg-background/70 backdrop-blur sticky top-0 z-30">
       <div className="container mx-auto flex h-16 items-center justify-between px-6">
@@ -73,12 +76,17 @@ function Header() {
           >
             Search
           </Link>
-          <Link
-            to="/library"
-            className="px-3 py-1.5 rounded-md hover:bg-muted [&.active]:bg-muted [&.active]:font-medium"
-          >
-            Library
-          </Link>
+          {user && (
+            <Link
+              to="/admin/library"
+              className="px-3 py-1.5 rounded-md hover:bg-muted [&.active]:bg-muted [&.active]:font-medium"
+            >
+              {isAdmin ? "Admin" : "My library"}
+            </Link>
+          )}
+          <div className="ml-2">
+            <UserMenu />
+          </div>
         </nav>
       </div>
     </header>
@@ -89,16 +97,18 @@ function RootComponent() {
   const [client] = useState(() => new QueryClient());
   return (
     <QueryClientProvider client={client}>
-      <div className="min-h-screen bg-background text-foreground flex flex-col">
-        <Header />
-        <main className="flex-1">
-          <Outlet />
-        </main>
-        <footer className="border-t border-border/60 py-6 text-center text-xs text-muted-foreground">
-          Powered by Gemini embeddings · Lovable Cloud
-        </footer>
-      </div>
-      <Toaster richColors closeButton />
+      <AuthProvider>
+        <div className="min-h-screen bg-background text-foreground flex flex-col">
+          <Header />
+          <main className="flex-1">
+            <Outlet />
+          </main>
+          <footer className="border-t border-border/60 py-6 text-center text-xs text-muted-foreground">
+            Powered by Gemini embeddings · Lovable Cloud
+          </footer>
+        </div>
+        <Toaster richColors closeButton />
+      </AuthProvider>
     </QueryClientProvider>
   );
 }
