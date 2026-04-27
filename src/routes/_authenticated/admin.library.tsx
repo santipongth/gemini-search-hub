@@ -18,10 +18,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, Trash2, Pencil, EyeOff, Search as SearchIcon, ShieldAlert, AudioLines } from "lucide-react";
+import { Loader2, Trash2, Pencil, EyeOff, Search as SearchIcon, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { EmbeddingsBackfillPanel } from "@/components/admin/embeddings-backfill";
+import { AudioWaveformPreview } from "@/components/library/audio-waveform-preview";
 
 type AdminItem = ItemSummary & {
   visibility?: string;
@@ -304,20 +305,10 @@ function AdminItemTile({
               className="h-full w-full object-cover"
             />
           ) : item.modality === "audio" && item.storage_path ? (
-            <div
-              className="p-4 w-full"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-              }}
-            >
-              <AudioLines className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
-              <audio
-                controls
-                src={`${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/library/${item.storage_path}`}
-                className="w-full"
-              />
-            </div>
+            <AudioWaveformPreview
+              src={`${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/library/${item.storage_path}`}
+              seed={item.id}
+            />
           ) : (
             <div className="p-4 text-xs text-muted-foreground line-clamp-6">
               {item.title ?? item.text_content ?? item.modality}
