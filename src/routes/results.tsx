@@ -4,6 +4,7 @@ import { z } from "zod";
 import { searchItems } from "@/server/items.functions";
 import { logSearch } from "@/server/analytics.functions";
 import { ItemCard, type ItemSummary } from "@/components/item-card";
+import { LightboxGallery } from "@/components/lightbox-gallery";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2, Search as SearchIcon, ArrowLeft } from "lucide-react";
@@ -36,6 +37,7 @@ function ResultsPage() {
   const [interpreted, setInterpreted] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const searchEventIdRef = useRef<string | null>(null);
+  const [lightboxId, setLightboxId] = useState<string | null>(null);
 
   useEffect(() => {
     setText(search.q);
@@ -143,6 +145,7 @@ function ResultsPage() {
               queryTerms={queryTerms}
               queryType="text"
               rawQuery={search.q}
+              onImageZoom={setLightboxId}
               onClick={() => {
                 import("@/server/analytics.functions").then(({ logResultClick }) => {
                   logResultClick({
@@ -158,6 +161,15 @@ function ResultsPage() {
           ))}
         </div>
       ) : null}
+
+      {results && (
+        <LightboxGallery
+          items={results}
+          openId={lightboxId}
+          onOpenChange={setLightboxId}
+          detailSearch={{ q: search.q, qt: "text" }}
+        />
+      )}
     </div>
   );
 }

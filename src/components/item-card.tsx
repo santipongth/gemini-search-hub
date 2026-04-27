@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { FileText, ImageIcon, AudioLines } from "lucide-react";
+import { FileText, ImageIcon, AudioLines, Maximize2 } from "lucide-react";
 import {
   highlightText,
   findSnippet,
@@ -47,6 +47,7 @@ export function ItemCard({
   queryType,
   rawQuery,
   onClick,
+  onImageZoom,
 }: {
   item: ItemSummary;
   queryTerms?: string[];
@@ -54,6 +55,8 @@ export function ItemCard({
   /** Original raw search query string from the URL — used to round-trip back to /results exactly. */
   rawQuery?: string;
   onClick?: () => void;
+  /** When provided and the item is an image, shows a zoom button that opens a lightbox instead of navigating. */
+  onImageZoom?: (id: string) => void;
 }) {
   const url = publicUrl(item.storage_path);
   const title = item.title ?? "Untitled";
@@ -95,13 +98,29 @@ export function ItemCard({
     >
       <div className="aspect-[4/3] bg-muted/40 flex items-center justify-center overflow-hidden relative">
         {item.modality === "image" && url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={url}
-            alt={item.title ?? "Library image"}
-            loading="lazy"
-            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.04]"
-          />
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={url}
+              alt={item.title ?? "Library image"}
+              loading="lazy"
+              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.04]"
+            />
+            {onImageZoom && (
+              <button
+                type="button"
+                aria-label={`Zoom image: ${title}`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onImageZoom(item.id);
+                }}
+                className="absolute top-2 right-2 inline-flex h-8 w-8 items-center justify-center rounded-full bg-background/80 backdrop-blur text-foreground shadow-soft opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background hover:bg-background"
+              >
+                <Maximize2 className="h-4 w-4" />
+              </button>
+            )}
+          </>
         ) : item.modality === "audio" && url ? (
           <div className="h-full w-full bg-gradient-to-br from-primary/8 via-card to-accent/8">
             <AudioWaveformPreview src={url} seed={item.id} />

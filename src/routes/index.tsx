@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { searchItems } from "@/server/items.functions";
 import { logSearch } from "@/server/analytics.functions";
 import { ItemCard, type ItemSummary } from "@/components/item-card";
+import { LightboxGallery } from "@/components/lightbox-gallery";
 import {
   FileDropZone,
   AudioRecorder,
@@ -99,6 +100,7 @@ function SearchPage() {
   const [hasSearched, setHasSearched] = useState(false);
   const [serverFailures, setServerFailures] = useState<ValidationFailure[] | null>(null);
   const [sortBy, setSortBy] = useState<"similarity" | "newest" | "oldest" | "title">("similarity");
+  const [lightboxId, setLightboxId] = useState<string | null>(null);
   // Track the in-flight request so the user can cancel and immediately
   // re-enable inputs. The server still runs to completion, but the client
   // discards the response.
@@ -352,9 +354,19 @@ function SearchPage() {
                     tab === "text" ? text : interpreted ?? "",
                   )}
                   queryType={tab as "text" | "image" | "audio"}
+                  onImageZoom={setLightboxId}
                 />
               ))}
             </div>
+            <LightboxGallery
+              items={results}
+              openId={lightboxId}
+              onOpenChange={setLightboxId}
+              detailSearch={{
+                q: tab === "text" ? text : interpreted ?? "",
+                qt: tab as "text" | "image" | "audio",
+              }}
+            />
           </>
         ) : (
           <MultimodalEmptyState activeTab={tab as "text" | "image" | "audio"} />
