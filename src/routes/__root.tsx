@@ -98,12 +98,21 @@ function GlobalErrorBridge() {
   // when build/import-protection or server functions throw unexpectedly.
   if (typeof window !== "undefined" && !(window as unknown as { __lumenErrBound?: boolean }).__lumenErrBound) {
     (window as unknown as { __lumenErrBound: boolean }).__lumenErrBound = true;
-    window.addEventListener("error", (ev) => {
-      const msg = ev?.error?.message || ev?.message || "Unexpected error";
-      // Filter out noisy hydration warnings and resource load errors
-      if (/hydrat|ResizeObserver|Script error/i.test(String(msg))) return;
-      import("sonner").then(({ toast }) => toast.error("Runtime error", { description: String(msg).slice(0, 240) }));
-    });
+    window.addEventListener(
+      "error",
+      (ev) => {
+        // Resource load failures (img/script/link 404s) dispatch an Event whose
+        // target is the failing element, not Window. Ignore those — they're noise.
+        if (ev.target && ev.target !== window) return;
+        const msg = ev?.error?.message || ev?.message || "";
+        if (!msg) return; // Cross-origin "Script error." with no detail — drop.
+        if (/hydrat|ResizeObserver|Script error|Loading chunk/i.test(String(msg))) return;
+        import("sonner").then(({ toast }) =>
+          toast.error("Runtime error", { description: String(msg).slice(0, 240) }),
+        );
+      },
+      true, // capture so we see resource errors and can filter them
+    );
     window.addEventListener("unhandledrejection", (ev) => {
       const reason = ev?.reason;
       const msg = reason instanceof Error ? reason.message : String(reason ?? "Unhandled promise rejection");
