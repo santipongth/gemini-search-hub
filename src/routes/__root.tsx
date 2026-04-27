@@ -93,11 +93,33 @@ function Header() {
   );
 }
 
+function GlobalErrorBridge() {
+  // Surface unhandled runtime errors as toasts so users always see *something*
+  // when build/import-protection or server functions throw unexpectedly.
+  if (typeof window !== "undefined" && !(window as unknown as { __lumenErrBound?: boolean }).__lumenErrBound) {
+    (window as unknown as { __lumenErrBound: boolean }).__lumenErrBound = true;
+    window.addEventListener("error", (ev) => {
+      const msg = ev?.error?.message || ev?.message || "Unexpected error";
+      // Filter out noisy hydration warnings and resource load errors
+      if (/hydrat|ResizeObserver|Script error/i.test(String(msg))) return;
+      import("sonner").then(({ toast }) => toast.error("Runtime error", { description: String(msg).slice(0, 240) }));
+    });
+    window.addEventListener("unhandledrejection", (ev) => {
+      const reason = ev?.reason;
+      const msg = reason instanceof Error ? reason.message : String(reason ?? "Unhandled promise rejection");
+      if (/AbortError|cancelled/i.test(msg)) return;
+      import("sonner").then(({ toast }) => toast.error("Request failed", { description: msg.slice(0, 240) }));
+    });
+  }
+  return null;
+}
+
 function RootComponent() {
   const [client] = useState(() => new QueryClient());
   return (
     <QueryClientProvider client={client}>
       <AuthProvider>
+        <GlobalErrorBridge />
         <div className="min-h-screen bg-background text-foreground flex flex-col">
           <Header />
           <main className="flex-1">
