@@ -24,7 +24,7 @@ import { Search, Sparkles, Loader2, CheckCircle2, AlertCircle, ArrowDownWideNarr
 import { toast } from "sonner";
 import { extractTerms } from "@/lib/highlight";
 import { InlineRuleFailures } from "@/components/inline-rule-failures";
-
+import { MultimodalEmptyState } from "@/components/multimodal-empty-state";
 
 // Try to parse a server function error into structured validation failures.
 function parseServerError(err: unknown): ValidationErrorPayload | null {
@@ -341,7 +341,9 @@ function SearchPage() {
               ))}
             </div>
           </>
-        ) : null}
+        ) : (
+          <MultimodalEmptyState activeTab={tab as "text" | "image" | "audio"} />
+        )}
       </div>
     </div>
   );
