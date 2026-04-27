@@ -289,7 +289,8 @@ export const findSimilar = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { data: item, error } = await supabaseAdmin
       .from("items")
-      .select("id, search_text, embedding")
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .select("id, search_text, embedding" as any)
       .eq("id", data.id)
       .single();
     if (error || !item) throw new Error("Item not found");
