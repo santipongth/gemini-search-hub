@@ -100,6 +100,7 @@ function SearchPage() {
   const [hasSearched, setHasSearched] = useState(false);
   const [serverFailures, setServerFailures] = useState<ValidationFailure[] | null>(null);
   const [sortBy, setSortBy] = useState<"similarity" | "newest" | "oldest" | "title">("similarity");
+  const [lightboxId, setLightboxId] = useState<string | null>(null);
   // Track the in-flight request so the user can cancel and immediately
   // re-enable inputs. The server still runs to completion, but the client
   // discards the response.
