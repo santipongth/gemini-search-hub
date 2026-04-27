@@ -84,6 +84,7 @@ function Header() {
               {isAdmin ? "Admin" : "My library"}
             </Link>
           )}
+          {import.meta.env.DEV && <DevErrorTrigger />}
           <div className="ml-2">
             <UserMenu />
           </div>
