@@ -10,6 +10,9 @@ const LogSearchInput = z.object({
   query_type: z.enum(["text", "image", "audio"]),
   modality_filter: z.string().max(20).nullable().optional(),
   result_count: z.number().int().min(0).max(10000),
+  latency_ms: z.number().int().min(0).max(600000).nullable().optional(),
+  used_vector: z.boolean().nullable().optional(),
+  top_similarity: z.number().min(0).max(1).nullable().optional(),
 });
 
 export const logSearch = createServerFn({ method: "POST" })
@@ -17,12 +20,16 @@ export const logSearch = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { data: row, error } = await supabaseAdmin
       .from("search_events")
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .insert({
         query_text: data.query_text ?? null,
         query_type: data.query_type,
         modality_filter: data.modality_filter ?? null,
         result_count: data.result_count,
-      })
+        latency_ms: data.latency_ms ?? null,
+        used_vector: data.used_vector ?? null,
+        top_similarity: data.top_similarity ?? null,
+      } as any)
       .select("id")
       .single();
     if (error) {
