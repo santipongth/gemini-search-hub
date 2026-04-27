@@ -1,6 +1,7 @@
 import { createFileRoute, redirect, Outlet, Link, useLocation } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { Library, BarChart3, Network } from "lucide-react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   beforeLoad: async ({ location }) => {
@@ -8,8 +9,18 @@ export const Route = createFileRoute("/_authenticated/admin")({
     if (!session) {
       throw redirect({ to: "/auth", search: { redirect: location.href } });
     }
-    // Note: full admin role check happens at the data layer (server functions
-    // already enforce admin/owner). Non-admins still see "their" library here.
+    // Server-side admin check (RLS-protected user_roles table — only the
+    // user themself or an admin can see their row).
+    const { data: roleRow } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", session.user.id)
+      .eq("role", "admin")
+      .maybeSingle();
+    if (!roleRow) {
+      toast.error("Admin access required");
+      throw redirect({ to: "/" });
+    }
   },
   component: AdminLayout,
 });
