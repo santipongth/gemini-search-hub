@@ -14,6 +14,41 @@ export type Database = {
   }
   public: {
     Tables: {
+      ground_truth_relevance: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          is_relevant: boolean
+          item_id: string
+          query_text: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_relevant?: boolean
+          item_id: string
+          query_text: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_relevant?: boolean
+          item_id?: string
+          query_text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ground_truth_relevance_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       item_tags: {
         Row: {
           created_at: string
@@ -162,28 +197,37 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          latency_ms: number | null
           modality_filter: string | null
           query_text: string | null
           query_type: string
           result_count: number
+          top_similarity: number | null
+          used_vector: boolean | null
           user_id: string | null
         }
         Insert: {
           created_at?: string
           id?: string
+          latency_ms?: number | null
           modality_filter?: string | null
           query_text?: string | null
           query_type: string
           result_count?: number
+          top_similarity?: number | null
+          used_vector?: boolean | null
           user_id?: string | null
         }
         Update: {
           created_at?: string
           id?: string
+          latency_ms?: number | null
           modality_filter?: string | null
           query_text?: string | null
           query_type?: string
           result_count?: number
+          top_similarity?: number | null
+          used_vector?: boolean | null
           user_id?: string | null
         }
         Relationships: []
@@ -247,6 +291,7 @@ export type Database = {
         }[]
       }
       get_search_analytics: { Args: { days_back?: number }; Returns: Json }
+      get_vector_metrics: { Args: { days_back?: number }; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
