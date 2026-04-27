@@ -354,9 +354,19 @@ function SearchPage() {
                     tab === "text" ? text : interpreted ?? "",
                   )}
                   queryType={tab as "text" | "image" | "audio"}
+                  onImageZoom={setLightboxId}
                 />
               ))}
             </div>
+            <LightboxGallery
+              items={results}
+              openId={lightboxId}
+              onOpenChange={setLightboxId}
+              detailSearch={{
+                q: tab === "text" ? text : interpreted ?? "",
+                qt: tab as "text" | "image" | "audio",
+              }}
+            />
           </>
         ) : (
           <MultimodalEmptyState activeTab={tab as "text" | "image" | "audio"} />
