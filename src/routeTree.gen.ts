@@ -17,6 +17,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ItemIdRouteImport } from './routes/item.$id'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
+import { Route as AuthenticatedAdminVectorMetricsRouteImport } from './routes/_authenticated/admin.vector-metrics'
 import { Route as AuthenticatedAdminMapRouteImport } from './routes/_authenticated/admin.map'
 import { Route as AuthenticatedAdminLibraryRouteImport } from './routes/_authenticated/admin.library'
 import { Route as AuthenticatedAdminAnalyticsRouteImport } from './routes/_authenticated/admin.analytics'
@@ -60,6 +61,12 @@ const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedAdminRoute,
 } as any)
+const AuthenticatedAdminVectorMetricsRoute =
+  AuthenticatedAdminVectorMetricsRouteImport.update({
+    id: '/vector-metrics',
+    path: '/vector-metrics',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminMapRoute = AuthenticatedAdminMapRouteImport.update({
   id: '/map',
   path: '/map',
@@ -88,6 +95,7 @@ export interface FileRoutesByFullPath {
   '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
   '/admin/library': typeof AuthenticatedAdminLibraryRoute
   '/admin/map': typeof AuthenticatedAdminMapRoute
+  '/admin/vector-metrics': typeof AuthenticatedAdminVectorMetricsRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
 }
 export interface FileRoutesByTo {
@@ -99,6 +107,7 @@ export interface FileRoutesByTo {
   '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
   '/admin/library': typeof AuthenticatedAdminLibraryRoute
   '/admin/map': typeof AuthenticatedAdminMapRoute
+  '/admin/vector-metrics': typeof AuthenticatedAdminVectorMetricsRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
 }
 export interface FileRoutesById {
@@ -113,6 +122,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
   '/_authenticated/admin/library': typeof AuthenticatedAdminLibraryRoute
   '/_authenticated/admin/map': typeof AuthenticatedAdminMapRoute
+  '/_authenticated/admin/vector-metrics': typeof AuthenticatedAdminVectorMetricsRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
 }
 export interface FileRouteTypes {
@@ -127,6 +137,7 @@ export interface FileRouteTypes {
     | '/admin/analytics'
     | '/admin/library'
     | '/admin/map'
+    | '/admin/vector-metrics'
     | '/admin/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -138,6 +149,7 @@ export interface FileRouteTypes {
     | '/admin/analytics'
     | '/admin/library'
     | '/admin/map'
+    | '/admin/vector-metrics'
     | '/admin'
   id:
     | '__root__'
@@ -151,6 +163,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/analytics'
     | '/_authenticated/admin/library'
     | '/_authenticated/admin/map'
+    | '/_authenticated/admin/vector-metrics'
     | '/_authenticated/admin/'
   fileRoutesById: FileRoutesById
 }
@@ -221,6 +234,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/vector-metrics': {
+      id: '/_authenticated/admin/vector-metrics'
+      path: '/vector-metrics'
+      fullPath: '/admin/vector-metrics'
+      preLoaderRoute: typeof AuthenticatedAdminVectorMetricsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/map': {
       id: '/_authenticated/admin/map'
       path: '/map'
@@ -249,6 +269,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminAnalyticsRoute: typeof AuthenticatedAdminAnalyticsRoute
   AuthenticatedAdminLibraryRoute: typeof AuthenticatedAdminLibraryRoute
   AuthenticatedAdminMapRoute: typeof AuthenticatedAdminMapRoute
+  AuthenticatedAdminVectorMetricsRoute: typeof AuthenticatedAdminVectorMetricsRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
 }
 
@@ -256,6 +277,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminAnalyticsRoute: AuthenticatedAdminAnalyticsRoute,
   AuthenticatedAdminLibraryRoute: AuthenticatedAdminLibraryRoute,
   AuthenticatedAdminMapRoute: AuthenticatedAdminMapRoute,
+  AuthenticatedAdminVectorMetricsRoute: AuthenticatedAdminVectorMetricsRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
 }
 

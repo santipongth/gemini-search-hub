@@ -1,6 +1,6 @@
 import { createFileRoute, redirect, isRedirect, Outlet, Link, useLocation, useRouter } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
-import { Library, BarChart3, Network, ShieldAlert, RefreshCw } from "lucide-react";
+import { Library, BarChart3, Network, ShieldAlert, RefreshCw, Gauge } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/admin")({
