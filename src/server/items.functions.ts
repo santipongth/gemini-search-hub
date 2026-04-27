@@ -459,6 +459,10 @@ export const bulkDeleteItems = createServerFn({ method: "POST" })
     z.object({ ids: z.array(z.string().uuid()).min(1).max(200) }).parse(input),
   )
   .handler(async ({ data, context }) => {
+    // Server-side admin guard for bulk destructive ops. Single-item delete
+    // still allows owners (handled by assertCanMutate inside the loop).
+    await assertAdmin(context.userId);
+
     let deleted = 0;
     const errors: string[] = [];
     for (const id of data.ids) {
