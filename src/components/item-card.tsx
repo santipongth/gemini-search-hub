@@ -5,6 +5,7 @@ import {
   findSnippet,
   countMatchedTerms,
 } from "@/lib/highlight";
+import { AudioWaveformPreview } from "@/components/library/audio-waveform-preview";
 
 export type ItemSummary = {
   id: string;
