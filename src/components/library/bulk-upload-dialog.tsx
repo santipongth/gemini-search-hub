@@ -102,7 +102,7 @@ export function BulkUploadDialog({ onAdded }: { onAdded?: () => void }) {
           updateItemState(q.id, {
             status: "duplicate",
             error: "An identical item already exists.",
-            duplicateExistingId: (obj as { existing_id: string }).existing_id,
+            duplicateExistingId: (obj as unknown as { existing_id: string }).existing_id,
           });
           return;
         }
