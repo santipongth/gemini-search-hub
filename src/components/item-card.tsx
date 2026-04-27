@@ -44,11 +44,14 @@ export function ItemCard({
   item,
   queryTerms = [],
   queryType,
+  rawQuery,
   onClick,
 }: {
   item: ItemSummary;
   queryTerms?: string[];
   queryType?: "text" | "image" | "audio";
+  /** Original raw search query string from the URL — used to round-trip back to /results exactly. */
+  rawQuery?: string;
   onClick?: () => void;
 }) {
   const url = publicUrl(item.storage_path);
@@ -66,11 +69,12 @@ export function ItemCard({
     queryTerms,
   );
 
-  // Pass query context onward so the item page can build its similarity panel.
+  // Pass query context onward so the item page can build its similarity panel
+  // AND restore the exact /results page on Back.
   const linkSearch =
-    queryTerms.length > 0 || queryType
+    rawQuery || queryTerms.length > 0 || queryType
       ? {
-          q: queryTerms.join(" ") || undefined,
+          q: rawQuery ?? (queryTerms.join(" ") || undefined),
           qt: queryType,
           sim:
             typeof item.similarity === "number"
