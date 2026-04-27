@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { searchItems } from "@/server/items.functions";
 import { logSearch } from "@/server/analytics.functions";
 import { ItemCard, type ItemSummary } from "@/components/item-card";
+import { LightboxGallery } from "@/components/lightbox-gallery";
 import {
   FileDropZone,
   AudioRecorder,
