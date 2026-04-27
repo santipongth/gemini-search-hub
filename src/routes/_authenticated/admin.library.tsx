@@ -262,16 +262,7 @@ function AdminLibraryPage() {
                 selected={selected.has(item.id)}
                 onToggle={() => toggleSelect(item.id)}
                 onEdit={() => setEditing(item)}
-                onDelete={async () => {
-                  if (!confirm("Delete this item?")) return;
-                  try {
-                    await deleteItem({ data: { id: item.id } });
-                    toast.success("Deleted");
-                    reload();
-                  } catch (e) {
-                    toast.error(e instanceof Error ? e.message : "Failed");
-                  }
-                }}
+                onDelete={() => setDeleting(item)}
               />
             ))}
           </div>
