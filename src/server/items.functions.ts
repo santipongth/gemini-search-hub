@@ -353,6 +353,22 @@ export const getItem = createServerFn({ method: "GET" })
     return { item: row };
   });
 
+async function isAdmin(userId: string): Promise<boolean> {
+  const { data: roleRow } = await supabaseAdmin
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userId)
+    .eq("role", "admin")
+    .maybeSingle();
+  return !!roleRow;
+}
+
+export async function assertAdmin(userId: string): Promise<void> {
+  if (!(await isAdmin(userId))) {
+    throw new Error("Forbidden: admin role required");
+  }
+}
+
 async function assertCanMutate(itemId: string, userId: string): Promise<void> {
   const { data: row } = await supabaseAdmin
     .from("items")
