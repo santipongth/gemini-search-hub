@@ -67,22 +67,27 @@ function AuthPage() {
   };
 
   return (
-    <div className="container mx-auto px-6 py-16 max-w-md">
-      <Link to="/" className="flex items-center justify-center gap-2 mb-8">
-        <span className="inline-block h-8 w-8 rounded-md bg-gradient-to-br from-primary to-accent" />
-        <span className="font-display text-2xl tracking-tight">Lumen</span>
-      </Link>
+    <div className="relative">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 h-[420px] bg-gradient-mesh opacity-70 [mask-image:linear-gradient(to_bottom,black,transparent)]"
+      />
+      <div className="container relative mx-auto px-6 py-16 max-w-md">
+        <Link to="/" className="flex items-center justify-center gap-2 mb-8">
+          <span className="inline-block h-9 w-9 rounded-md bg-gradient-primary shadow-glow" />
+          <span className="font-display text-2xl tracking-tight">Lumen</span>
+        </Link>
 
-      <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-        <div className="text-center mb-6">
-          <div className="inline-flex items-center gap-2 rounded-full border border-border bg-background px-3 py-1 text-xs text-muted-foreground mb-3">
-            <Sparkles className="h-3 w-3" /> Multimodal search
+        <div className="rounded-2xl border border-border/60 bg-card/80 backdrop-blur p-6 shadow-elegant">
+          <div className="text-center mb-6">
+            <div className="inline-flex items-center gap-2 rounded-full border border-border bg-background px-3 py-1 text-xs text-muted-foreground mb-3">
+              <Sparkles className="h-3 w-3 text-primary" /> Multimodal search
+            </div>
+            <h1 className="font-display text-2xl font-semibold">Welcome to Lumen</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Sign in to manage your library
+            </p>
           </div>
-          <h1 className="text-xl font-semibold">Welcome to Lumen</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Sign in to manage your library
-          </p>
-        </div>
 
         <Tabs value={tab} onValueChange={(v) => setTab(v as "signin" | "signup")}>
           <TabsList className="grid grid-cols-2 w-full mb-4">
