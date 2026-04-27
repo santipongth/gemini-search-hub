@@ -18,6 +18,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Loader2, Trash2, Pencil, EyeOff, Search as SearchIcon, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
@@ -49,6 +59,9 @@ function AdminLibraryPage() {
   const [scope, setScope] = useState<"mine" | "all">("mine");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [editing, setEditing] = useState<AdminItem | null>(null);
+  const [deleting, setDeleting] = useState<AdminItem | null>(null);
+  const [bulkConfirmOpen, setBulkConfirmOpen] = useState(false);
+  const [deleteBusy, setDeleteBusy] = useState(false);
 
   const reload = async () => {
     setLoading(true);
@@ -110,7 +123,7 @@ function AdminLibraryPage() {
 
   const onBulkDelete = async () => {
     if (selected.size === 0) return;
-    if (!confirm(`Delete ${selected.size} item${selected.size === 1 ? "" : "s"}?`)) return;
+    setDeleteBusy(true);
     try {
       const res = await bulkDeleteItems({ data: { ids: Array.from(selected) } });
       toast.success(`Deleted ${res.deleted} item${res.deleted === 1 ? "" : "s"}`);
@@ -118,6 +131,24 @@ function AdminLibraryPage() {
       reload();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed");
+    } finally {
+      setDeleteBusy(false);
+      setBulkConfirmOpen(false);
+    }
+  };
+
+  const onConfirmDelete = async () => {
+    if (!deleting) return;
+    setDeleteBusy(true);
+    try {
+      await deleteItem({ data: { id: deleting.id } });
+      toast.success("Deleted");
+      reload();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed");
+    } finally {
+      setDeleteBusy(false);
+      setDeleting(null);
     }
   };
 
@@ -195,7 +226,7 @@ function AdminLibraryPage() {
         <div className="sticky top-16 z-20 mb-4 rounded-xl border border-primary/40 bg-primary/5 backdrop-blur p-3 flex items-center gap-3">
           <span className="text-sm font-medium">{selected.size} selected</span>
           <Button size="sm" variant="outline" onClick={() => setSelected(new Set())}>Clear</Button>
-          <Button size="sm" variant="destructive" onClick={onBulkDelete} className="gap-2">
+          <Button size="sm" variant="destructive" onClick={() => setBulkConfirmOpen(true)} className="gap-2">
             <Trash2 className="h-4 w-4" /> Delete
           </Button>
         </div>
@@ -231,16 +262,7 @@ function AdminLibraryPage() {
                 selected={selected.has(item.id)}
                 onToggle={() => toggleSelect(item.id)}
                 onEdit={() => setEditing(item)}
-                onDelete={async () => {
-                  if (!confirm("Delete this item?")) return;
-                  try {
-                    await deleteItem({ data: { id: item.id } });
-                    toast.success("Deleted");
-                    reload();
-                  } catch (e) {
-                    toast.error(e instanceof Error ? e.message : "Failed");
-                  }
-                }}
+                onDelete={() => setDeleting(item)}
               />
             ))}
           </div>
@@ -262,6 +284,68 @@ function AdminLibraryPage() {
           onSaved={() => { setEditing(null); reload(); router.invalidate(); }}
         />
       )}
+
+      <AlertDialog
+        open={!!deleting}
+        onOpenChange={(open) => !open && !deleteBusy && setDeleting(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this item?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleting?.title ? `"${deleting.title}"` : "This item"}
+              {deleting?.modality ? ` (${deleting.modality})` : ""} will be
+              permanently removed, including any uploaded file. This cannot be
+              undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteBusy}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                onConfirmDelete();
+              }}
+              disabled={deleteBusy}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteBusy && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={bulkConfirmOpen}
+        onOpenChange={(open) => !open && !deleteBusy && setBulkConfirmOpen(false)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Delete {selected.size} item{selected.size === 1 ? "" : "s"}?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              The selected items and any uploaded files will be permanently
+              removed. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteBusy}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                onBulkDelete();
+              }}
+              disabled={deleteBusy}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteBusy && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
