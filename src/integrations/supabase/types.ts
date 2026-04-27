@@ -52,6 +52,7 @@ export type Database = {
           content_hash: string | null
           created_at: string
           description: string | null
+          embedding: string | null
           id: string
           mime_type: string | null
           modality: string
@@ -66,6 +67,7 @@ export type Database = {
           content_hash?: string | null
           created_at?: string
           description?: string | null
+          embedding?: string | null
           id?: string
           mime_type?: string | null
           modality: string
@@ -80,6 +82,7 @@ export type Database = {
           content_hash?: string | null
           created_at?: string
           description?: string | null
+          embedding?: string | null
           id?: string
           mime_type?: string | null
           modality?: string
@@ -232,6 +235,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      count_missing_embeddings: { Args: never; Returns: number }
       explain_match: {
         Args: { item_id: string; query_text: string }
         Returns: {
@@ -250,12 +254,38 @@ export type Database = {
         }
         Returns: boolean
       }
+      list_missing_embedding_ids: {
+        Args: { batch_size?: number }
+        Returns: {
+          id: string
+          search_text: string
+        }[]
+      }
       match_items: {
         Args: {
           match_count?: number
           min_similarity?: number
           modality_filter?: string
           query_text: string
+        }
+        Returns: {
+          created_at: string
+          description: string
+          id: string
+          mime_type: string
+          modality: string
+          similarity: number
+          storage_path: string
+          text_content: string
+          title: string
+        }[]
+      }
+      match_items_vec: {
+        Args: {
+          match_count?: number
+          min_similarity?: number
+          modality_filter?: string
+          query_embedding: string
         }
         Returns: {
           created_at: string
