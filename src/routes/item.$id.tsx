@@ -113,7 +113,7 @@ function ItemPage() {
           <div className="flex items-center gap-2">
             <span className="text-xs uppercase tracking-wide text-muted-foreground">{item.modality}</span>
           </div>
-          <h1 className="text-2xl font-semibold">
+          <h1 className="font-display text-3xl sm:text-4xl font-semibold tracking-tight">
             {queryTerms.length > 0 && item.title
               ? highlightText(item.title, queryTerms)
               : item.title ?? "Untitled"}
