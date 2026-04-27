@@ -128,8 +128,24 @@ function ResultsPage() {
         </div>
       ) : results ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {results.map((r) => (
-            <ItemCard key={r.id} item={r} queryTerms={queryTerms} queryType="text" />
+          {results.map((r, idx) => (
+            <ItemCard
+              key={r.id}
+              item={r}
+              queryTerms={queryTerms}
+              queryType="text"
+              onClick={() => {
+                import("@/server/analytics.functions").then(({ logResultClick }) => {
+                  logResultClick({
+                    data: {
+                      search_event_id: searchEventIdRef.current,
+                      item_id: r.id,
+                      position: idx,
+                    },
+                  }).catch(() => {});
+                });
+              }}
+            />
           ))}
         </div>
       ) : null}
