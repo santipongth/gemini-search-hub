@@ -4,6 +4,7 @@ import { z } from "zod";
 import { searchItems } from "@/server/items.functions";
 import { logSearch } from "@/server/analytics.functions";
 import { ItemCard, type ItemSummary } from "@/components/item-card";
+import { LightboxGallery } from "@/components/lightbox-gallery";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2, Search as SearchIcon, ArrowLeft } from "lucide-react";
