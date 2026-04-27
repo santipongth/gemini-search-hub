@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      item_tags: {
+        Row: {
+          created_at: string
+          item_id: string
+          tag_id: string
+        }
+        Insert: {
+          created_at?: string
+          item_id: string
+          tag_id: string
+        }
+        Update: {
+          created_at?: string
+          item_id?: string
+          tag_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "item_tags_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "item_tags_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "tags"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       items: {
         Row: {
           content_hash: string | null
@@ -80,6 +113,99 @@ export type Database = {
         }
         Relationships: []
       }
+      result_clicks: {
+        Row: {
+          created_at: string
+          id: string
+          item_id: string | null
+          position: number | null
+          search_event_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_id?: string | null
+          position?: number | null
+          search_event_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_id?: string | null
+          position?: number | null
+          search_event_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "result_clicks_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "result_clicks_search_event_id_fkey"
+            columns: ["search_event_id"]
+            isOneToOne: false
+            referencedRelation: "search_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      search_events: {
+        Row: {
+          created_at: string
+          id: string
+          modality_filter: string | null
+          query_text: string | null
+          query_type: string
+          result_count: number
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          modality_filter?: string | null
+          query_text?: string | null
+          query_type: string
+          result_count?: number
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          modality_filter?: string | null
+          query_text?: string | null
+          query_type?: string
+          result_count?: number
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      tags: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          owner_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          owner_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          owner_id?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -116,6 +242,7 @@ export type Database = {
           trigram_similarity: number
         }[]
       }
+      get_search_analytics: { Args: { days_back?: number }; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

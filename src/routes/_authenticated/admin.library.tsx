@@ -1,19 +1,15 @@
 import { createFileRoute, useRouter, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { listItems, deleteItem, updateItem, bulkDeleteItems } from "@/server/items.functions";
-import { ItemCard, type ItemSummary } from "@/components/item-card";
+import { listItems, deleteItem, bulkDeleteItems } from "@/server/items.functions";
+import { listTags } from "@/server/tags.functions";
+import { type ItemSummary } from "@/components/item-card";
 import { UploadDialog } from "@/components/upload-dialog";
+import { BulkUploadDialog } from "@/components/library/bulk-upload-dialog";
+import { EditItemDialog } from "@/components/library/edit-item-dialog";
+import { TagChips } from "@/components/library/tag-input";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -22,7 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, Trash2, Pencil, Eye, EyeOff, Search as SearchIcon, ShieldAlert } from "lucide-react";
+import { Loader2, Trash2, Pencil, EyeOff, Search as SearchIcon, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -132,7 +128,10 @@ function AdminLibraryPage() {
             {items.length} loaded · {scope === "mine" ? "your items" : "all items"}
           </p>
         </div>
-        <UploadDialog onAdded={reload} />
+        <div className="flex gap-2">
+          <BulkUploadDialog onAdded={reload} />
+          <UploadDialog onAdded={reload} />
+        </div>
       </div>
 
       {/* Filters */}
@@ -325,85 +324,3 @@ function AdminItemTile({
   );
 }
 
-function EditItemDialog({
-  item,
-  onClose,
-  onSaved,
-}: {
-  item: AdminItem;
-  onClose: () => void;
-  onSaved: () => void;
-}) {
-  const [title, setTitle] = useState(item.title ?? "");
-  const [description, setDescription] = useState(item.description ?? "");
-  const [visibility, setVisibility] = useState<"public" | "private">(
-    (item.visibility as "public" | "private") ?? "public",
-  );
-  const [busy, setBusy] = useState(false);
-
-  const save = async () => {
-    setBusy(true);
-    try {
-      await updateItem({
-        data: {
-          id: item.id,
-          title: title.trim() || null,
-          description: description.trim() || null,
-          visibility,
-        },
-      });
-      toast.success("Saved");
-      onSaved();
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  return (
-    <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Edit item</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-3">
-          <div>
-            <Label>Title</Label>
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={200} />
-          </div>
-          <div>
-            <Label>Description</Label>
-            <Textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={4}
-              maxLength={1000}
-            />
-          </div>
-          <div>
-            <Label>Visibility</Label>
-            <Select value={visibility} onValueChange={(v) => setVisibility(v as typeof visibility)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="public">
-                  <span className="inline-flex items-center gap-2"><Eye className="h-3.5 w-3.5" /> Public — anyone can find</span>
-                </SelectItem>
-                <SelectItem value="private">
-                  <span className="inline-flex items-center gap-2"><EyeOff className="h-3.5 w-3.5" /> Private — only you</span>
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={save} disabled={busy} className="gap-2">
-            {busy && <Loader2 className="h-4 w-4 animate-spin" />}
-            Save changes
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}

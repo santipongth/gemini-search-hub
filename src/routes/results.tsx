@@ -1,7 +1,8 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { z } from "zod";
 import { searchItems } from "@/server/items.functions";
+import { logSearch } from "@/server/analytics.functions";
 import { ItemCard, type ItemSummary } from "@/components/item-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,6 +35,7 @@ function ResultsPage() {
   const [results, setResults] = useState<ItemSummary[] | null>(null);
   const [interpreted, setInterpreted] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const searchEventIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     setText(search.q);
@@ -44,7 +46,6 @@ function ResultsPage() {
   const runSearch = async (q: string, qt: "text" | "image" | "audio") => {
     setBusy(true);
     try {
-      // For now /results only handles text queries (image/audio still go through /).
       const res = await searchItems({
         data: {
           query_type: qt === "text" ? "text" : "text",
@@ -56,6 +57,20 @@ function ResultsPage() {
       });
       setResults(res.results as ItemSummary[]);
       setInterpreted(res.interpreted_query);
+
+      // Fire-and-forget analytics log.
+      logSearch({
+        data: {
+          query_text: q,
+          query_type: "text",
+          modality_filter: "all",
+          result_count: res.results.length,
+        },
+      })
+        .then((r) => {
+          searchEventIdRef.current = r.id;
+        })
+        .catch(() => {});
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Search failed");
       setResults([]);
@@ -113,8 +128,24 @@ function ResultsPage() {
         </div>
       ) : results ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {results.map((r) => (
-            <ItemCard key={r.id} item={r} queryTerms={queryTerms} queryType="text" />
+          {results.map((r, idx) => (
+            <ItemCard
+              key={r.id}
+              item={r}
+              queryTerms={queryTerms}
+              queryType="text"
+              onClick={() => {
+                import("@/server/analytics.functions").then(({ logResultClick }) => {
+                  logResultClick({
+                    data: {
+                      search_event_id: searchEventIdRef.current,
+                      item_id: r.id,
+                      position: idx,
+                    },
+                  }).catch(() => {});
+                });
+              }}
+            />
           ))}
         </div>
       ) : null}

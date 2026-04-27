@@ -4,6 +4,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { searchItems } from "@/server/items.functions";
+import { logSearch } from "@/server/analytics.functions";
 import { ItemCard, type ItemSummary } from "@/components/item-card";
 import {
   FileDropZone,
@@ -162,6 +163,16 @@ function SearchPage() {
       setResults(res.results as ItemSummary[]);
       setInterpreted(res.interpreted_query);
       setHasSearched(true);
+
+      // Fire-and-forget analytics log.
+      logSearch({
+        data: {
+          query_text: tab === "text" ? text : res.interpreted_query,
+          query_type: tab as "text" | "image" | "audio",
+          modality_filter: "all",
+          result_count: res.results.length,
+        },
+      }).catch(() => {});
     } catch (e) {
       if (myId !== requestIdRef.current) return;
       const structured = parseServerError(e);

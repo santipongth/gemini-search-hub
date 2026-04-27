@@ -44,10 +44,12 @@ export function ItemCard({
   item,
   queryTerms = [],
   queryType,
+  onClick,
 }: {
   item: ItemSummary;
   queryTerms?: string[];
   queryType?: "text" | "image" | "audio";
+  onClick?: () => void;
 }) {
   const url = publicUrl(item.storage_path);
   const title = item.title ?? "Untitled";
@@ -82,6 +84,7 @@ export function ItemCard({
       to="/item/$id"
       params={{ id: item.id }}
       search={linkSearch as never}
+      onClick={onClick}
       className="group block rounded-xl border border-border bg-card overflow-hidden hover:shadow-lg hover:border-primary/40 transition"
     >
       <div className="aspect-[4/3] bg-muted/40 flex items-center justify-center overflow-hidden">
