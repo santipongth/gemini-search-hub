@@ -196,17 +196,29 @@ function SearchPage() {
   };
 
   return (
-    <div className="container mx-auto px-6 py-12 max-w-5xl">
-      <div className="text-center space-y-3 mb-10">
-        <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs text-muted-foreground">
-          <Sparkles className="h-3 w-3" /> Powered by Gemini embeddings
-        </div>
-        <p className="text-muted-foreground max-w-xl mx-auto">
-          Type a question, drop an image, or record audio. Lumen finds semantically similar items across every modality.
-        </p>
-      </div>
+    <div className="relative">
+      {/* Decorative mesh gradient backdrop */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 h-[520px] bg-gradient-mesh opacity-70 [mask-image:linear-gradient(to_bottom,black,transparent)]"
+      />
 
-      <div className="rounded-2xl border border-border bg-card shadow-sm p-4 sm:p-6 space-y-5">
+      <div className="container relative mx-auto px-6 pt-16 pb-16 max-w-5xl">
+        <div className="text-center space-y-5 mb-12">
+          <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card/70 backdrop-blur px-3 py-1 text-xs text-muted-foreground">
+            <Sparkles className="h-3 w-3 text-primary" /> Powered by Gemini embeddings
+          </div>
+          <h1 className="font-display text-5xl sm:text-6xl font-semibold leading-[1.05] tracking-tight">
+            Search anything,
+            <br />
+            <span className="text-gradient-primary">in any language of media.</span>
+          </h1>
+          <p className="text-muted-foreground text-lg max-w-2xl mx-auto leading-relaxed">
+            Type a question, drop an image, or record audio. Lumen finds semantically similar items across every modality.
+          </p>
+        </div>
+
+      <div className="rounded-3xl border border-border/60 bg-card/80 backdrop-blur shadow-elegant p-4 sm:p-6 space-y-5">
         <Tabs value={tab} onValueChange={(v) => { if (busy) return; setTab(v); setFile(null); }}>
           <TabsList className="grid grid-cols-3 w-full max-w-sm mx-auto">
             <TabsTrigger value="text" disabled={busy}>Text</TabsTrigger>
