@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, Trash2, Pencil, EyeOff, Search as SearchIcon, ShieldAlert } from "lucide-react";
+import { Loader2, Trash2, Pencil, EyeOff, Search as SearchIcon, ShieldAlert, AudioLines } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { EmbeddingsBackfillPanel } from "@/components/admin/embeddings-backfill";
