@@ -89,7 +89,7 @@ function ItemPage() {
         <ArrowLeft className="h-4 w-4" /> {backLabel}
       </Link>
 
-      <div className="rounded-2xl border border-border bg-card overflow-hidden">
+      <div className="rounded-3xl border border-border/60 bg-card overflow-hidden shadow-soft">
         {item.modality === "image" && url && (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={url} alt={item.title ?? ""} className="w-full max-h-[60vh] object-contain bg-muted" />
