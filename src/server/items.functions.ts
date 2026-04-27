@@ -171,6 +171,16 @@ export const addItem = createServerFn({ method: "POST" })
       }
     }
 
+    // Compute embedding (best-effort: don't fail insert if AI is unavailable)
+    let embedding: number[] | null = null;
+    try {
+      if (embeddingSource.trim()) {
+        embedding = await embedText(embeddingSource);
+      }
+    } catch (e) {
+      console.error("Embedding failed during insert (item will be backfilled later):", e);
+    }
+
     const { data: row, error } = await supabaseAdmin
       .from("items")
       .insert({
@@ -184,12 +194,14 @@ export const addItem = createServerFn({ method: "POST" })
         owner_id: userId,
         visibility: data.visibility,
         content_hash,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ...(embedding ? { embedding: embedding as any } : {}),
       })
       .select("id")
       .single();
     if (error) throw new Error(error.message);
 
-    return { id: row.id };
+    return { id: row.id, embedded: !!embedding };
   });
 
 // ---------- Search ----------
