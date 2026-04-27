@@ -8,6 +8,12 @@ import { supabase } from "@/integrations/supabase/client";
 
 import appCss from "../styles.css?url";
 
+// Dev-only: hard-reload the page when Vite reports a syntax/parse HMR error
+// or after a reconnect, to avoid stale JSX error overlays.
+if (import.meta.env.DEV) {
+  void import("@/lib/dev-force-reload");
+}
+
 // Global fetch interceptor: attach Supabase access_token to all server function
 // calls so middleware-protected endpoints (requireSupabaseAuth) receive auth.
 if (typeof window !== "undefined" && !(window as unknown as { __lumenFetchPatched?: boolean }).__lumenFetchPatched) {
