@@ -123,7 +123,7 @@ function AdminLibraryPage() {
 
   const onBulkDelete = async () => {
     if (selected.size === 0) return;
-    if (!confirm(`Delete ${selected.size} item${selected.size === 1 ? "" : "s"}?`)) return;
+    setDeleteBusy(true);
     try {
       const res = await bulkDeleteItems({ data: { ids: Array.from(selected) } });
       toast.success(`Deleted ${res.deleted} item${res.deleted === 1 ? "" : "s"}`);
@@ -131,6 +131,24 @@ function AdminLibraryPage() {
       reload();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed");
+    } finally {
+      setDeleteBusy(false);
+      setBulkConfirmOpen(false);
+    }
+  };
+
+  const onConfirmDelete = async () => {
+    if (!deleting) return;
+    setDeleteBusy(true);
+    try {
+      await deleteItem({ data: { id: deleting.id } });
+      toast.success("Deleted");
+      reload();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed");
+    } finally {
+      setDeleteBusy(false);
+      setDeleting(null);
     }
   };
 
