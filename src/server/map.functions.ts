@@ -23,16 +23,14 @@ export type MapNode = {
   id: string;
   title: string | null;
   modality: string;
-  x: number; // 0..1
-  y: number; // 0..1
+  x: number;
+  y: number;
   cluster: number;
   degree: number;
 };
 
 export type MapEdge = { source: string; target: string; weight: number };
 
-// Compute deterministic 2D positions using a token-overlap projection.
-// Cheap, no external deps, runs in the Worker.
 export const getSimilarityMap = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) =>
@@ -55,7 +53,8 @@ export const getSimilarityMap = createServerFn({ method: "POST" })
 
     let q = supabaseAdmin
       .from("items")
-      .select("id, modality, title, search_text, owner_id")
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .select("id, modality, title, search_text, owner_id, embedding" as any)
       .order("created_at", { ascending: false })
       .limit(data.limit);
 
@@ -66,32 +65,174 @@ export const getSimilarityMap = createServerFn({ method: "POST" })
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
 
-    const items = rows ?? [];
+    type Row = {
+      id: string;
+      modality: string;
+      title: string | null;
+      search_text: string | null;
+      owner_id: string | null;
+      embedding: number[] | string | null;
+    };
+    const items = ((rows ?? []) as unknown) as Row[];
     if (items.length === 0) {
-      return { nodes: [] as MapNode[], edges: [] as MapEdge[] };
+      return { nodes: [] as MapNode[], edges: [] as MapEdge[], mode: "empty" as const };
     }
 
-    // Build token sets per item.
+    const embeddings: (number[] | null)[] = items.map((it) => {
+      const e = it.embedding;
+      if (!e) return null;
+      if (Array.isArray(e)) return e as number[];
+      if (typeof e === "string") {
+        try {
+          const parsed = JSON.parse(e);
+          return Array.isArray(parsed) ? parsed : null;
+        } catch {
+          return null;
+        }
+      }
+      return null;
+    });
+    const hasAnyEmbedding = embeddings.some((e) => e !== null);
+
+    if (hasAnyEmbedding) {
+      const norms = embeddings.map((v) => {
+        if (!v) return 0;
+        let s = 0;
+        for (let k = 0; k < v.length; k++) s += v[k] * v[k];
+        return Math.sqrt(s);
+      });
+      const cosine = (i: number, j: number) => {
+        const a = embeddings[i], b = embeddings[j];
+        if (!a || !b || norms[i] === 0 || norms[j] === 0) return 0;
+        const len = Math.min(a.length, b.length);
+        let dot = 0;
+        for (let k = 0; k < len; k++) dot += a[k] * b[k];
+        return dot / (norms[i] * norms[j]);
+      };
+
+      const edges: MapEdge[] = [];
+      const degree = new Map<string, number>();
+      for (let i = 0; i < items.length; i++) {
+        for (let j = i + 1; j < items.length; j++) {
+          const sim = cosine(i, j);
+          if (sim > 0.55) {
+            edges.push({ source: items[i].id, target: items[j].id, weight: sim });
+            degree.set(items[i].id, (degree.get(items[i].id) ?? 0) + 1);
+            degree.set(items[j].id, (degree.get(items[j].id) ?? 0) + 1);
+          }
+        }
+      }
+      edges.sort((a, b) => b.weight - a.weight);
+      const cappedEdges = edges.slice(0, Math.min(edges.length, items.length * 4));
+
+      // PCA via power iteration on embedding matrix
+      const D = embeddings.find((v) => v)?.length ?? 0;
+      const mean = new Array(D).fill(0);
+      let counted = 0;
+      for (const v of embeddings) {
+        if (!v) continue;
+        for (let k = 0; k < D; k++) mean[k] += v[k];
+        counted++;
+      }
+      if (counted > 0) for (let k = 0; k < D; k++) mean[k] /= counted;
+
+      const centered: (number[] | null)[] = embeddings.map((v) => {
+        if (!v) return null;
+        const c = new Array(D);
+        for (let k = 0; k < D; k++) c[k] = v[k] - mean[k];
+        return c;
+      });
+
+      const normalize = (x: number[]): number[] => {
+        let s = 0;
+        for (let k = 0; k < D; k++) s += x[k] * x[k];
+        const n = Math.sqrt(s) || 1;
+        for (let k = 0; k < D; k++) x[k] /= n;
+        return x;
+      };
+      const powerIter = (excludeDir: number[] | null): number[] => {
+        let u = new Array(D).fill(0).map((_, k) => Math.sin(k * 12.9898 + 78.233));
+        u = normalize(u);
+        for (let iter = 0; iter < 12; iter++) {
+          const proj = centered.map((c) => {
+            if (!c) return 0;
+            let d = 0;
+            for (let k = 0; k < D; k++) d += c[k] * u[k];
+            return d;
+          });
+          const y = new Array(D).fill(0);
+          for (let i = 0; i < centered.length; i++) {
+            const c = centered[i];
+            if (!c) continue;
+            const p = proj[i];
+            for (let k = 0; k < D; k++) y[k] += c[k] * p;
+          }
+          if (excludeDir) {
+            let d = 0;
+            for (let k = 0; k < D; k++) d += y[k] * excludeDir[k];
+            for (let k = 0; k < D; k++) y[k] -= d * excludeDir[k];
+          }
+          u = normalize(y);
+        }
+        return u;
+      };
+
+      const pc1 = D > 0 ? powerIter(null) : [];
+      const pc2 = D > 0 ? powerIter(pc1) : [];
+
+      const raw = items.map((it, i) => {
+        const c = centered[i];
+        let xa = 0, yb = 0;
+        if (c) {
+          for (let k = 0; k < D; k++) {
+            xa += c[k] * pc1[k];
+            yb += c[k] * pc2[k];
+          }
+        } else {
+          let h = 2166136261;
+          for (let k = 0; k < it.id.length; k++) {
+            h ^= it.id.charCodeAt(k);
+            h = Math.imul(h, 16777619);
+          }
+          xa = (((h >>> 0) & 0xffff) / 0xffff) * 2 - 1;
+          yb = (((h >>> 16) & 0xffff) / 0xffff) * 2 - 1;
+        }
+        return { id: it.id, modality: it.modality, title: it.title, xa, yb };
+      });
+
+      const xs = raw.map((r) => r.xa);
+      const ys = raw.map((r) => r.yb);
+      const minX = Math.min(...xs), maxX = Math.max(...xs);
+      const minY = Math.min(...ys), maxY = Math.max(...ys);
+      const sx = maxX - minX || 1;
+      const sy = maxY - minY || 1;
+      const modalityIdx: Record<string, number> = { text: 0, image: 1, audio: 2 };
+      const nodes: MapNode[] = raw.map((r) => ({
+        id: r.id,
+        title: r.title,
+        modality: r.modality,
+        x: (r.xa - minX) / sx,
+        y: (r.yb - minY) / sy,
+        cluster: modalityIdx[r.modality] ?? 0,
+        degree: degree.get(r.id) ?? 0,
+      }));
+
+      return { nodes, edges: cappedEdges, mode: "vector" as const };
+    }
+
+    // Fallback: token-overlap (when no embeddings yet)
     const tokenSets = items.map((it) => new Set(tokenize(it.search_text ?? "")));
-
-    // Document frequency for IDF weighting.
     const df = new Map<string, number>();
-    for (const set of tokenSets) {
-      for (const t of set) df.set(t, (df.get(t) ?? 0) + 1);
-    }
+    for (const set of tokenSets) for (const t of set) df.set(t, (df.get(t) ?? 0) + 1);
     const N = items.length;
     const idf = (t: string) => Math.log(1 + N / (1 + (df.get(t) ?? 0)));
-
-    // Pairwise weighted Jaccard similarity (top edges only).
     const edges: MapEdge[] = [];
     const degree = new Map<string, number>();
     for (let i = 0; i < items.length; i++) {
       for (let j = i + 1; j < items.length; j++) {
-        const a = tokenSets[i];
-        const b = tokenSets[j];
+        const a = tokenSets[i], b = tokenSets[j];
         if (a.size === 0 || b.size === 0) continue;
-        let inter = 0;
-        let union = 0;
+        let inter = 0, union = 0;
         const seen = new Set<string>();
         for (const t of a) {
           seen.add(t);
@@ -111,14 +252,8 @@ export const getSimilarityMap = createServerFn({ method: "POST" })
         }
       }
     }
-
-    // Cap edges to avoid huge payloads.
     edges.sort((a, b) => b.weight - a.weight);
     const cappedEdges = edges.slice(0, Math.min(edges.length, items.length * 4));
-
-    // Simple deterministic 2D projection: hash item id + cluster by modality.
-    // We compute coordinates from the IDF-weighted token vector projected onto
-    // two pseudo-random axes derived from token hashes (PCA-ish but cheap).
     const axisA = new Map<string, number>();
     const axisB = new Map<string, number>();
     const hash = (s: string) => {
@@ -134,23 +269,16 @@ export const getSimilarityMap = createServerFn({ method: "POST" })
       axisA.set(t, ((h & 0xffff) / 0xffff) * 2 - 1);
       axisB.set(t, (((h >>> 16) & 0xffff) / 0xffff) * 2 - 1);
     }
-
     const raw = items.map((it, i) => {
       const set = tokenSets[i];
-      let xa = 0,
-        yb = 0,
-        norm = 0;
+      let xa = 0, yb = 0, norm = 0;
       for (const t of set) {
         const w = idf(t);
         xa += (axisA.get(t) ?? 0) * w;
         yb += (axisB.get(t) ?? 0) * w;
         norm += w;
       }
-      if (norm > 0) {
-        xa /= norm;
-        yb /= norm;
-      }
-      // If item has no tokens, scatter deterministically.
+      if (norm > 0) { xa /= norm; yb /= norm; }
       if (set.size === 0) {
         const h = hash(it.id);
         xa = ((h & 0xff) / 0xff) * 2 - 1;
@@ -158,19 +286,13 @@ export const getSimilarityMap = createServerFn({ method: "POST" })
       }
       return { id: it.id, modality: it.modality, title: it.title, xa, yb };
     });
-
-    // Normalize to 0..1.
     const xs = raw.map((r) => r.xa);
     const ys = raw.map((r) => r.yb);
-    const minX = Math.min(...xs),
-      maxX = Math.max(...xs);
-    const minY = Math.min(...ys),
-      maxY = Math.max(...ys);
+    const minX = Math.min(...xs), maxX = Math.max(...xs);
+    const minY = Math.min(...ys), maxY = Math.max(...ys);
     const sx = maxX - minX || 1;
     const sy = maxY - minY || 1;
-
     const modalityIdx: Record<string, number> = { text: 0, image: 1, audio: 2 };
-
     const nodes: MapNode[] = raw.map((r) => ({
       id: r.id,
       title: r.title,
@@ -180,6 +302,5 @@ export const getSimilarityMap = createServerFn({ method: "POST" })
       cluster: modalityIdx[r.modality] ?? 0,
       degree: degree.get(r.id) ?? 0,
     }));
-
-    return { nodes, edges: cappedEdges };
+    return { nodes, edges: cappedEdges, mode: "lexical" as const };
   });

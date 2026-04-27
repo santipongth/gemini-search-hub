@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { describeImage, transcribeAudio } from "./ai.server";
+import { describeImage, transcribeAudio, embedText } from "./ai.server";
 import {
   validateUploadedFile,
   makeAudioDurationFailure,
@@ -171,25 +171,39 @@ export const addItem = createServerFn({ method: "POST" })
       }
     }
 
+    // Compute embedding (best-effort: don't fail insert if AI is unavailable)
+    let embedding: number[] | null = null;
+    try {
+      if (embeddingSource.trim()) {
+        embedding = await embedText(embeddingSource);
+      }
+    } catch (e) {
+      console.error("Embedding failed during insert (item will be backfilled later):", e);
+    }
+
+    const insertPayload: Record<string, unknown> = {
+      modality: data.modality,
+      title: data.title ?? null,
+      description: data.description ?? null,
+      text_content,
+      storage_path,
+      mime_type: data.mime_type ?? null,
+      search_text: embeddingSource,
+      owner_id: userId,
+      visibility: data.visibility,
+      content_hash,
+    };
+    if (embedding) insertPayload.embedding = embedding;
+
     const { data: row, error } = await supabaseAdmin
       .from("items")
-      .insert({
-        modality: data.modality,
-        title: data.title ?? null,
-        description: data.description ?? null,
-        text_content,
-        storage_path,
-        mime_type: data.mime_type ?? null,
-        search_text: embeddingSource,
-        owner_id: userId,
-        visibility: data.visibility,
-        content_hash,
-      })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .insert(insertPayload as any)
       .select("id")
       .single();
     if (error) throw new Error(error.message);
 
-    return { id: row.id };
+    return { id: row.id, embedded: !!embedding };
   });
 
 // ---------- Search ----------
@@ -228,17 +242,46 @@ export const searchItems = createServerFn({ method: "POST" })
           : await transcribeAudio(data.data_url!, data.mime_type!);
     }
 
-    const { data: rows, error } = await supabaseAdmin.rpc("match_items", {
-      query_text: queryText,
-      match_count: data.limit,
-      modality_filter: data.modality_filter === "all" ? undefined : data.modality_filter,
-      min_similarity: data.min_similarity,
-    });
-    if (error) throw new Error(error.message);
+    // Embed the query, then use vector search.
+    // Fall back to lexical/trigram search only if embedding fails.
+    type SearchRow = {
+      id: string;
+      modality: string;
+      title: string | null;
+      description: string | null;
+      text_content: string | null;
+      storage_path: string | null;
+      mime_type: string | null;
+      similarity: number;
+      created_at: string;
+    };
+    let results: SearchRow[] = [];
+    let usedVector = false;
+    try {
+      const queryEmbedding = await embedText(queryText);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: rows, error } = await (supabaseAdmin.rpc as any)("match_items_vec", {
+        query_embedding: queryEmbedding,
+        match_count: data.limit,
+        modality_filter: data.modality_filter === "all" ? undefined : data.modality_filter,
+        min_similarity: data.min_similarity,
+      });
+      if (error) throw new Error(error.message);
+      results = (rows ?? []) as SearchRow[];
+      usedVector = true;
+    } catch (e) {
+      console.warn("Vector search failed, falling back to lexical:", e);
+      const { data: rows, error } = await supabaseAdmin.rpc("match_items", {
+        query_text: queryText,
+        match_count: data.limit,
+        modality_filter: data.modality_filter === "all" ? undefined : data.modality_filter,
+        min_similarity: data.min_similarity,
+      });
+      if (error) throw new Error(error.message);
+      results = (rows ?? []) as SearchRow[];
+    }
 
-    // match_items RPC doesn't return visibility — public search is enforced
-    // by the RPC operating on items table data; we just pass through.
-    return { results: rows ?? [], interpreted_query: queryText };
+    return { results, interpreted_query: queryText, used_vector: usedVector };
   });
 
 // ---------- Find similar by item id ----------
@@ -246,12 +289,35 @@ export const searchItems = createServerFn({ method: "POST" })
 export const findSimilar = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => z.object({ id: z.string().uuid(), limit: z.number().int().min(1).max(50).default(10) }).parse(input))
   .handler(async ({ data }) => {
-    const { data: item, error } = await supabaseAdmin
+    const { data: itemRaw, error } = await supabaseAdmin
       .from("items")
       .select("id, search_text")
       .eq("id", data.id)
       .single();
-    if (error || !item) throw new Error("Item not found");
+    if (error || !itemRaw) throw new Error("Item not found");
+    // Fetch embedding via raw SQL-style cast (column not in generated types yet).
+    const { data: embRow } = await supabaseAdmin
+      .from("items")
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .select("embedding" as any)
+      .eq("id", data.id)
+      .single();
+    const item = { ...itemRaw, embedding: (embRow as { embedding?: number[] | string | null } | null)?.embedding ?? null };
+
+    // Prefer existing embedding; fall back to lexical when missing.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const existingEmb = (item as any).embedding as number[] | string | null;
+    if (existingEmb) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: rows, error: e2 } = await (supabaseAdmin.rpc as any)("match_items_vec", {
+        query_embedding: existingEmb,
+        match_count: data.limit + 1,
+        modality_filter: undefined,
+        min_similarity: 0,
+      });
+      if (e2) throw new Error(e2.message);
+      return { results: (rows ?? []).filter((r: { id: string }) => r.id !== data.id).slice(0, data.limit) };
+    }
 
     const { data: rows, error: e2 } = await supabaseAdmin.rpc("match_items", {
       query_text: item.search_text ?? "",
@@ -588,4 +654,69 @@ export const explainMatch = createServerFn({ method: "POST" })
       contributing_tokens: contributingTokens,
       query_tokens: queryTokens,
     };
+  });
+
+// ---------- Embedding backfill (admin-only) ----------
+
+export const getEmbeddingStats = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.userId);
+    const { count: total } = await supabaseAdmin
+      .from("items")
+      .select("id", { head: true, count: "exact" });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { count: missing } = await (supabaseAdmin
+      .from("items")
+      .select("id", { head: true, count: "exact" }) as any)
+      .is("embedding", null);
+    return { total: total ?? 0, missing: missing ?? 0 };
+  });
+
+export const backfillEmbeddings = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ batch_size: z.number().int().min(1).max(50).default(10) }).parse(input ?? {}),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+
+    // Fetch a batch of items missing embeddings
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: rows, error } = await (supabaseAdmin
+      .from("items")
+      .select("id, search_text") as any)
+      .is("embedding", null)
+      .order("created_at", { ascending: false })
+      .limit(data.batch_size);
+    if (error) throw new Error(error.message);
+
+    const items = (rows ?? []) as Array<{ id: string; search_text: string | null }>;
+    let processed = 0;
+    const errors: string[] = [];
+
+    for (const it of items) {
+      const text = (it.search_text ?? "").trim();
+      if (!text) {
+        errors.push(`${it.id}: empty search_text`);
+        continue;
+      }
+      try {
+        const emb = await embedText(text);
+        const { error: upErr } = await supabaseAdmin
+          .from("items")
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .update({ embedding: emb as any } as any)
+          .eq("id", it.id);
+        if (upErr) {
+          errors.push(`${it.id}: ${upErr.message}`);
+        } else {
+          processed++;
+        }
+      } catch (e) {
+        errors.push(`${it.id}: ${e instanceof Error ? e.message : "embed failed"}`);
+      }
+    }
+
+    return { processed, attempted: items.length, errors };
   });

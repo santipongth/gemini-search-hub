@@ -21,6 +21,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, Trash2, Pencil, EyeOff, Search as SearchIcon, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
+import { EmbeddingsBackfillPanel } from "@/components/admin/embeddings-backfill";
 
 type AdminItem = ItemSummary & {
   visibility?: string;
@@ -133,6 +134,7 @@ function AdminLibraryPage() {
           <UploadDialog onAdded={reload} />
         </div>
       </div>
+      <EmbeddingsBackfillPanel />
 
       {/* Filters */}
       <div className="rounded-xl border border-border bg-card p-4 mb-4 space-y-3">
