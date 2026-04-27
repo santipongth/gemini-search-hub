@@ -655,3 +655,68 @@ export const explainMatch = createServerFn({ method: "POST" })
       query_tokens: queryTokens,
     };
   });
+
+// ---------- Embedding backfill (admin-only) ----------
+
+export const getEmbeddingStats = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.userId);
+    const { count: total } = await supabaseAdmin
+      .from("items")
+      .select("id", { head: true, count: "exact" });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { count: missing } = await (supabaseAdmin
+      .from("items")
+      .select("id", { head: true, count: "exact" }) as any)
+      .is("embedding", null);
+    return { total: total ?? 0, missing: missing ?? 0 };
+  });
+
+export const backfillEmbeddings = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ batch_size: z.number().int().min(1).max(50).default(10) }).parse(input ?? {}),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+
+    // Fetch a batch of items missing embeddings
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: rows, error } = await (supabaseAdmin
+      .from("items")
+      .select("id, search_text") as any)
+      .is("embedding", null)
+      .order("created_at", { ascending: false })
+      .limit(data.batch_size);
+    if (error) throw new Error(error.message);
+
+    const items = (rows ?? []) as Array<{ id: string; search_text: string | null }>;
+    let processed = 0;
+    const errors: string[] = [];
+
+    for (const it of items) {
+      const text = (it.search_text ?? "").trim();
+      if (!text) {
+        errors.push(`${it.id}: empty search_text`);
+        continue;
+      }
+      try {
+        const emb = await embedText(text);
+        const { error: upErr } = await supabaseAdmin
+          .from("items")
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .update({ embedding: emb as any } as any)
+          .eq("id", it.id);
+        if (upErr) {
+          errors.push(`${it.id}: ${upErr.message}`);
+        } else {
+          processed++;
+        }
+      } catch (e) {
+        errors.push(`${it.id}: ${e instanceof Error ? e.message : "embed failed"}`);
+      }
+    }
+
+    return { processed, attempted: items.length, errors };
+  });
