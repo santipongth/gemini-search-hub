@@ -236,12 +236,9 @@ export const searchItems = createServerFn({ method: "POST" })
     });
     if (error) throw new Error(error.message);
 
-    // Only return public items to anonymous searchers (admin uses their own listing).
-    const publicResults = (rows ?? []).filter(
-      (r: { visibility?: string }) => !r.visibility || r.visibility === "public",
-    );
-
-    return { results: publicResults, interpreted_query: queryText };
+    // match_items RPC doesn't return visibility — public search is enforced
+    // by the RPC operating on items table data; we just pass through.
+    return { results: rows ?? [], interpreted_query: queryText };
   });
 
 // ---------- Find similar by item id ----------
