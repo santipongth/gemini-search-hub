@@ -181,22 +181,24 @@ export const addItem = createServerFn({ method: "POST" })
       console.error("Embedding failed during insert (item will be backfilled later):", e);
     }
 
+    const insertPayload: Record<string, unknown> = {
+      modality: data.modality,
+      title: data.title ?? null,
+      description: data.description ?? null,
+      text_content,
+      storage_path,
+      mime_type: data.mime_type ?? null,
+      search_text: embeddingSource,
+      owner_id: userId,
+      visibility: data.visibility,
+      content_hash,
+    };
+    if (embedding) insertPayload.embedding = embedding;
+
     const { data: row, error } = await supabaseAdmin
       .from("items")
-      .insert({
-        modality: data.modality,
-        title: data.title ?? null,
-        description: data.description ?? null,
-        text_content,
-        storage_path,
-        mime_type: data.mime_type ?? null,
-        search_text: embeddingSource,
-        owner_id: userId,
-        visibility: data.visibility,
-        content_hash,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ...(embedding ? { embedding: embedding as any } : {}),
-      })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .insert(insertPayload as any)
       .select("id")
       .single();
     if (error) throw new Error(error.message);
