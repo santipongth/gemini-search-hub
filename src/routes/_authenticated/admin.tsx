@@ -70,6 +70,7 @@ function AdminLayout() {
     { to: "/admin/library", label: "Library", icon: Library },
     { to: "/admin/analytics", label: "Analytics", icon: BarChart3 },
     { to: "/admin/map", label: "Map", icon: Network },
+    { to: "/admin/vector-metrics", label: "Vector Metrics", icon: Gauge },
   ] as const;
   return (
     <div className="container mx-auto px-6 py-6 max-w-7xl">
