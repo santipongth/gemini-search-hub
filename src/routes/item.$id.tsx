@@ -41,8 +41,16 @@ function ItemPage() {
   const { item } = Route.useLoaderData() as { item: ItemSummary };
   const search = Route.useSearch();
   const router = useRouter();
+  const { isAdmin } = useAuth();
   const [similar, setSimilar] = useState<ItemSummary[] | null>(null);
   const [busy, setBusy] = useState(false);
+
+  const hasSearchQuery = !!(search.q && search.q.trim().length > 0);
+  const backTo = hasSearchQuery ? "/results" : "/";
+  const backLabel = hasSearchQuery ? "Back to search results" : "Back to library";
+  const backSearch = hasSearchQuery
+    ? { q: search.q!, qt: search.qt ?? "text" }
+    : undefined;
 
   const url = publicUrl(item.storage_path);
   const queryTerms = extractTerms(search.q);
