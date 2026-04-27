@@ -5,7 +5,7 @@ import { listTags } from "@/server/tags.functions";
 import { type ItemSummary } from "@/components/item-card";
 import { UploadDialog } from "@/components/upload-dialog";
 import { BulkUploadDialog } from "@/components/library/bulk-upload-dialog";
-import { EditItemDialog } from "@/components/library/edit-item-dialog";
+import { EditItemDialog as EditItemDialogComp } from "@/components/library/edit-item-dialog";
 import { TagChips } from "@/components/library/tag-input";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
