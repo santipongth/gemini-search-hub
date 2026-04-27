@@ -286,9 +286,6 @@ function SearchPage() {
               {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <Search className="h-5 w-5" />}
               {busy ? "Searching..." : "Search"}
             </Button>
-              {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <Search className="h-5 w-5" />}
-              {busy ? "Searching..." : "Search"}
-            </Button>
             {busy && (
               <Button
                 onClick={onCancel}
