@@ -257,9 +257,9 @@ export const searchItems = createServerFn({ method: "POST" })
     let usedVector = false;
     try {
       const queryEmbedding = await embedText(queryText);
-      const { data: rows, error } = await supabaseAdmin.rpc("match_items_vec", {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        query_embedding: queryEmbedding as any,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: rows, error } = await (supabaseAdmin.rpc as any)("match_items_vec", {
+        query_embedding: queryEmbedding,
         match_count: data.limit,
         modality_filter: data.modality_filter === "all" ? undefined : data.modality_filter,
         min_similarity: data.min_similarity,
