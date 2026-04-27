@@ -242,7 +242,18 @@ export const searchItems = createServerFn({ method: "POST" })
 
     // Embed the query, then use vector search.
     // Fall back to lexical/trigram search only if embedding fails.
-    let results: Record<string, unknown>[] = [];
+    type SearchRow = {
+      id: string;
+      modality: string;
+      title: string | null;
+      description: string | null;
+      text_content: string | null;
+      storage_path: string | null;
+      mime_type: string | null;
+      similarity: number;
+      created_at: string;
+    };
+    let results: SearchRow[] = [];
     let usedVector = false;
     try {
       const queryEmbedding = await embedText(queryText);
