@@ -81,7 +81,17 @@ export const getSearchAnalytics = createServerFn({ method: "POST" })
     ),
   )
   .handler(async ({ data, context }) => {
-    const { supabase } = context;
+    const { supabase, userId } = context;
+
+    // Server-side admin guard (SQL function also enforces, defense-in-depth).
+    const { data: roleRow } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId)
+      .eq("role", "admin")
+      .maybeSingle();
+    if (!roleRow) throw new Error("Forbidden: admin role required");
+
     const { data: result, error } = await supabase.rpc("get_search_analytics", {
       days_back: data.days_back,
     });
