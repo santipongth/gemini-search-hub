@@ -240,17 +240,35 @@ export const searchItems = createServerFn({ method: "POST" })
           : await transcribeAudio(data.data_url!, data.mime_type!);
     }
 
-    const { data: rows, error } = await supabaseAdmin.rpc("match_items", {
-      query_text: queryText,
-      match_count: data.limit,
-      modality_filter: data.modality_filter === "all" ? undefined : data.modality_filter,
-      min_similarity: data.min_similarity,
-    });
-    if (error) throw new Error(error.message);
+    // Embed the query, then use vector search.
+    // Fall back to lexical/trigram search only if embedding fails.
+    let results: unknown[] = [];
+    let usedVector = false;
+    try {
+      const queryEmbedding = await embedText(queryText);
+      const { data: rows, error } = await supabaseAdmin.rpc("match_items_vec", {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        query_embedding: queryEmbedding as any,
+        match_count: data.limit,
+        modality_filter: data.modality_filter === "all" ? undefined : data.modality_filter,
+        min_similarity: data.min_similarity,
+      });
+      if (error) throw new Error(error.message);
+      results = rows ?? [];
+      usedVector = true;
+    } catch (e) {
+      console.warn("Vector search failed, falling back to lexical:", e);
+      const { data: rows, error } = await supabaseAdmin.rpc("match_items", {
+        query_text: queryText,
+        match_count: data.limit,
+        modality_filter: data.modality_filter === "all" ? undefined : data.modality_filter,
+        min_similarity: data.min_similarity,
+      });
+      if (error) throw new Error(error.message);
+      results = rows ?? [];
+    }
 
-    // match_items RPC doesn't return visibility — public search is enforced
-    // by the RPC operating on items table data; we just pass through.
-    return { results: rows ?? [], interpreted_query: queryText };
+    return { results, interpreted_query: queryText, used_vector: usedVector };
   });
 
 // ---------- Find similar by item id ----------
@@ -260,10 +278,25 @@ export const findSimilar = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { data: item, error } = await supabaseAdmin
       .from("items")
-      .select("id, search_text")
+      .select("id, search_text, embedding")
       .eq("id", data.id)
       .single();
     if (error || !item) throw new Error("Item not found");
+
+    // Prefer existing embedding; fall back to lexical when missing.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const existingEmb = (item as any).embedding as number[] | string | null;
+    if (existingEmb) {
+      const { data: rows, error: e2 } = await supabaseAdmin.rpc("match_items_vec", {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        query_embedding: existingEmb as any,
+        match_count: data.limit + 1,
+        modality_filter: undefined,
+        min_similarity: 0,
+      });
+      if (e2) throw new Error(e2.message);
+      return { results: (rows ?? []).filter((r: { id: string }) => r.id !== data.id).slice(0, data.limit) };
+    }
 
     const { data: rows, error: e2 } = await supabaseAdmin.rpc("match_items", {
       query_text: item.search_text ?? "",
