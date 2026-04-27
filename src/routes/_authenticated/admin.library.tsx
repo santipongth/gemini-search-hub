@@ -128,7 +128,10 @@ function AdminLibraryPage() {
             {items.length} loaded · {scope === "mine" ? "your items" : "all items"}
           </p>
         </div>
-        <UploadDialog onAdded={reload} />
+        <div className="flex gap-2">
+          <BulkUploadDialog onAdded={reload} />
+          <UploadDialog onAdded={reload} />
+        </div>
       </div>
 
       {/* Filters */}
