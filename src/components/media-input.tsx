@@ -167,6 +167,10 @@ export function FileDropZone({
   return (
     <div className="space-y-2">
       <div
+        role="button"
+        tabIndex={0}
+        aria-label={`Drop ${kind === "image" ? "an image" : "an audio file"} or click to browse. ${hint}`}
+        aria-invalid={!!inlineError}
         onDragOver={(e) => {
           e.preventDefault();
           setDrag(true);
@@ -179,15 +183,21 @@ export function FileDropZone({
           if (f) handle(f);
         }}
         onClick={() => inputRef.current?.click()}
-        className={`cursor-pointer rounded-xl border-2 border-dashed p-8 text-center transition ${
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            inputRef.current?.click();
+          }
+        }}
+        className={`cursor-pointer rounded-xl border-2 border-dashed p-8 text-center transition outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
           inlineError
             ? "border-destructive bg-destructive/5"
             : drag
-              ? "border-primary bg-primary/5"
-              : "border-border bg-muted/30 hover:bg-muted/60"
+              ? "border-primary bg-primary/10 scale-[1.01]"
+              : "border-border bg-muted/30 hover:bg-muted/60 hover:border-primary/40"
         }`}
       >
-        <Upload className={`mx-auto h-8 w-8 ${inlineError ? "text-destructive" : "text-muted-foreground"}`} />
+        <Upload className={`mx-auto h-8 w-8 ${inlineError ? "text-destructive" : "text-muted-foreground"}`} aria-hidden />
         <div className="mt-2 text-sm font-medium">Drop a file or click to browse</div>
         <div className="text-xs text-muted-foreground mt-1">{hint}</div>
         <input
@@ -195,6 +205,8 @@ export function FileDropZone({
           type="file"
           accept={accept}
           className="hidden"
+          aria-hidden
+          tabIndex={-1}
           onChange={(e) => {
             const f = e.target.files?.[0];
             if (f) handle(f);
