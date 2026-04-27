@@ -82,7 +82,7 @@ export function UploadDialog({ onAdded }: { onAdded?: () => void }) {
             obj && typeof obj === "object" && "code" in obj &&
             (obj as { code: string }).code === "DUPLICATE_ITEM"
           ) {
-            const d = obj as { existing_id: string; existing_title: string | null };
+            const d = obj as unknown as { existing_id: string; existing_title: string | null };
             setDuplicate({ id: d.existing_id, title: d.existing_title });
             toast.warning("Duplicate detected");
             return;
