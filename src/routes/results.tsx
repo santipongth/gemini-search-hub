@@ -145,6 +145,7 @@ function ResultsPage() {
               queryTerms={queryTerms}
               queryType="text"
               rawQuery={search.q}
+              onImageZoom={setLightboxId}
               onClick={() => {
                 import("@/server/analytics.functions").then(({ logResultClick }) => {
                   logResultClick({
@@ -160,6 +161,15 @@ function ResultsPage() {
           ))}
         </div>
       ) : null}
+
+      {results && (
+        <LightboxGallery
+          items={results}
+          openId={lightboxId}
+          onOpenChange={setLightboxId}
+          detailSearch={{ q: search.q, qt: "text" }}
+        />
+      )}
     </div>
   );
 }
