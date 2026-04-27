@@ -96,7 +96,9 @@ function Header() {
     <header className="border-b border-border/60 bg-background/70 backdrop-blur sticky top-0 z-30">
       <div className="container mx-auto flex h-16 items-center justify-between px-6">
         <Link to="/" className="flex items-center gap-2 group">
-          <span className="inline-block h-7 w-7 rounded-md bg-gradient-to-br from-primary to-accent" />
+          <span className="relative inline-block h-7 w-7 rounded-md bg-gradient-primary shadow-glow">
+            <span aria-hidden className="absolute inset-0 rounded-md ring-1 ring-inset ring-white/30" />
+          </span>
           <span className="font-display text-xl tracking-tight">Lumen</span>
           <span className="text-xs text-muted-foreground hidden sm:inline">multimodal search</span>
         </Link>
