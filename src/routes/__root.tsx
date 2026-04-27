@@ -115,6 +115,12 @@ function Header() {
           >
             Search
           </Link>
+          <Link
+            to="/playground"
+            className="px-3 py-1.5 rounded-md hover:bg-muted [&.active]:bg-muted [&.active]:font-medium"
+          >
+            Playground
+          </Link>
           {user && (
             <Link
               to="/admin/library"
