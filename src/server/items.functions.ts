@@ -353,6 +353,22 @@ export const getItem = createServerFn({ method: "GET" })
     return { item: row };
   });
 
+async function isAdmin(userId: string): Promise<boolean> {
+  const { data: roleRow } = await supabaseAdmin
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userId)
+    .eq("role", "admin")
+    .maybeSingle();
+  return !!roleRow;
+}
+
+export async function assertAdmin(userId: string): Promise<void> {
+  if (!(await isAdmin(userId))) {
+    throw new Error("Forbidden: admin role required");
+  }
+}
+
 async function assertCanMutate(itemId: string, userId: string): Promise<void> {
   const { data: row } = await supabaseAdmin
     .from("items")
@@ -443,6 +459,10 @@ export const bulkDeleteItems = createServerFn({ method: "POST" })
     z.object({ ids: z.array(z.string().uuid()).min(1).max(200) }).parse(input),
   )
   .handler(async ({ data, context }) => {
+    // Server-side admin guard for bulk destructive ops. Single-item delete
+    // still allows owners (handled by assertCanMutate inside the loop).
+    await assertAdmin(context.userId);
+
     let deleted = 0;
     const errors: string[] = [];
     for (const id of data.ids) {
