@@ -156,12 +156,37 @@ function GlobalErrorBridge() {
   return null;
 }
 
+function DevCleanBanner() {
+  // Dev-only sanity check: assert no leftover test-error trigger buttons exist
+  // in the DOM. Logs once on mount so a regression is immediately visible.
+  if (typeof window === "undefined" || !import.meta.env.DEV) return null;
+  if ((window as unknown as { __lumenCleanChecked?: boolean }).__lumenCleanChecked) return null;
+  (window as unknown as { __lumenCleanChecked: boolean }).__lumenCleanChecked = true;
+  queueMicrotask(() => {
+    const labels = ["Throw error", "Throw noise", "Reject", "Playground"];
+    const found = labels.filter((l) =>
+      Array.from(document.querySelectorAll("button, a")).some(
+        (el) => (el.textContent ?? "").trim() === l,
+      ),
+    );
+    if (found.length > 0) {
+      // eslint-disable-next-line no-console
+      console.warn("[dev] Stale test/dev triggers still in DOM:", found);
+    } else {
+      // eslint-disable-next-line no-console
+      console.info("[dev] UI clean: no test error triggers present.");
+    }
+  });
+  return null;
+}
+
 function RootComponent() {
   const [client] = useState(() => new QueryClient());
   return (
     <QueryClientProvider client={client}>
       <AuthProvider>
         <GlobalErrorBridge />
+        <DevCleanBanner />
         <div className="min-h-screen bg-background text-foreground flex flex-col">
           <Header />
           <main className="flex-1">
