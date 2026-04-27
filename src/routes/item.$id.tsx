@@ -17,6 +17,7 @@ import {
 import { toast } from "sonner";
 import { extractTerms, highlightText } from "@/lib/highlight";
 import { WhyItMatched } from "@/components/why-it-matched";
+import { useAuth } from "@/hooks/use-auth";
 
 const ItemSearch = z.object({
   q: z.string().optional(),
