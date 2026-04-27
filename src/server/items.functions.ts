@@ -255,6 +255,7 @@ export const searchItems = createServerFn({ method: "POST" })
       similarity: number;
       created_at: string;
     };
+    const startedAt = Date.now();
     let results: SearchRow[] = [];
     let usedVector = false;
     try {
@@ -280,8 +281,16 @@ export const searchItems = createServerFn({ method: "POST" })
       if (error) throw new Error(error.message);
       results = (rows ?? []) as SearchRow[];
     }
+    const latencyMs = Date.now() - startedAt;
+    const topSimilarity = results.length > 0 ? results[0].similarity : null;
 
-    return { results, interpreted_query: queryText, used_vector: usedVector };
+    return {
+      results,
+      interpreted_query: queryText,
+      used_vector: usedVector,
+      latency_ms: latencyMs,
+      top_similarity: topSimilarity,
+    };
   });
 
 // ---------- Find similar by item id ----------

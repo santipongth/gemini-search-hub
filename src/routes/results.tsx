@@ -58,13 +58,16 @@ function ResultsPage() {
       setResults(res.results as ItemSummary[]);
       setInterpreted(res.interpreted_query);
 
-      // Fire-and-forget analytics log.
+      // Fire-and-forget analytics log (with latency + vector flag).
       logSearch({
         data: {
           query_text: q,
           query_type: "text",
           modality_filter: "all",
           result_count: res.results.length,
+          latency_ms: res.latency_ms,
+          used_vector: res.used_vector,
+          top_similarity: res.top_similarity ?? null,
         },
       })
         .then((r) => {

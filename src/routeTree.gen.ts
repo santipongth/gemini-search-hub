@@ -10,12 +10,14 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ResultsRouteImport } from './routes/results'
+import { Route as PlaygroundRouteImport } from './routes/playground'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ItemIdRouteImport } from './routes/item.$id'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
+import { Route as AuthenticatedAdminVectorMetricsRouteImport } from './routes/_authenticated/admin.vector-metrics'
 import { Route as AuthenticatedAdminMapRouteImport } from './routes/_authenticated/admin.map'
 import { Route as AuthenticatedAdminLibraryRouteImport } from './routes/_authenticated/admin.library'
 import { Route as AuthenticatedAdminAnalyticsRouteImport } from './routes/_authenticated/admin.analytics'
@@ -23,6 +25,11 @@ import { Route as AuthenticatedAdminAnalyticsRouteImport } from './routes/_authe
 const ResultsRoute = ResultsRouteImport.update({
   id: '/results',
   path: '/results',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlaygroundRoute = PlaygroundRouteImport.update({
+  id: '/playground',
+  path: '/playground',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -54,6 +61,12 @@ const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedAdminRoute,
 } as any)
+const AuthenticatedAdminVectorMetricsRoute =
+  AuthenticatedAdminVectorMetricsRouteImport.update({
+    id: '/vector-metrics',
+    path: '/vector-metrics',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminMapRoute = AuthenticatedAdminMapRouteImport.update({
   id: '/map',
   path: '/map',
@@ -75,22 +88,26 @@ const AuthenticatedAdminAnalyticsRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/playground': typeof PlaygroundRoute
   '/results': typeof ResultsRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/item/$id': typeof ItemIdRoute
   '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
   '/admin/library': typeof AuthenticatedAdminLibraryRoute
   '/admin/map': typeof AuthenticatedAdminMapRoute
+  '/admin/vector-metrics': typeof AuthenticatedAdminVectorMetricsRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/playground': typeof PlaygroundRoute
   '/results': typeof ResultsRoute
   '/item/$id': typeof ItemIdRoute
   '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
   '/admin/library': typeof AuthenticatedAdminLibraryRoute
   '/admin/map': typeof AuthenticatedAdminMapRoute
+  '/admin/vector-metrics': typeof AuthenticatedAdminVectorMetricsRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
 }
 export interface FileRoutesById {
@@ -98,12 +115,14 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/auth': typeof AuthRoute
+  '/playground': typeof PlaygroundRoute
   '/results': typeof ResultsRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/item/$id': typeof ItemIdRoute
   '/_authenticated/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
   '/_authenticated/admin/library': typeof AuthenticatedAdminLibraryRoute
   '/_authenticated/admin/map': typeof AuthenticatedAdminMapRoute
+  '/_authenticated/admin/vector-metrics': typeof AuthenticatedAdminVectorMetricsRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
 }
 export interface FileRouteTypes {
@@ -111,34 +130,40 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/playground'
     | '/results'
     | '/admin'
     | '/item/$id'
     | '/admin/analytics'
     | '/admin/library'
     | '/admin/map'
+    | '/admin/vector-metrics'
     | '/admin/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/auth'
+    | '/playground'
     | '/results'
     | '/item/$id'
     | '/admin/analytics'
     | '/admin/library'
     | '/admin/map'
+    | '/admin/vector-metrics'
     | '/admin'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/playground'
     | '/results'
     | '/_authenticated/admin'
     | '/item/$id'
     | '/_authenticated/admin/analytics'
     | '/_authenticated/admin/library'
     | '/_authenticated/admin/map'
+    | '/_authenticated/admin/vector-metrics'
     | '/_authenticated/admin/'
   fileRoutesById: FileRoutesById
 }
@@ -146,6 +171,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   AuthRoute: typeof AuthRoute
+  PlaygroundRoute: typeof PlaygroundRoute
   ResultsRoute: typeof ResultsRoute
   ItemIdRoute: typeof ItemIdRoute
 }
@@ -157,6 +183,13 @@ declare module '@tanstack/react-router' {
       path: '/results'
       fullPath: '/results'
       preLoaderRoute: typeof ResultsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/playground': {
+      id: '/playground'
+      path: '/playground'
+      fullPath: '/playground'
+      preLoaderRoute: typeof PlaygroundRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -201,6 +234,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/vector-metrics': {
+      id: '/_authenticated/admin/vector-metrics'
+      path: '/vector-metrics'
+      fullPath: '/admin/vector-metrics'
+      preLoaderRoute: typeof AuthenticatedAdminVectorMetricsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/map': {
       id: '/_authenticated/admin/map'
       path: '/map'
@@ -229,6 +269,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminAnalyticsRoute: typeof AuthenticatedAdminAnalyticsRoute
   AuthenticatedAdminLibraryRoute: typeof AuthenticatedAdminLibraryRoute
   AuthenticatedAdminMapRoute: typeof AuthenticatedAdminMapRoute
+  AuthenticatedAdminVectorMetricsRoute: typeof AuthenticatedAdminVectorMetricsRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
 }
 
@@ -236,6 +277,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminAnalyticsRoute: AuthenticatedAdminAnalyticsRoute,
   AuthenticatedAdminLibraryRoute: AuthenticatedAdminLibraryRoute,
   AuthenticatedAdminMapRoute: AuthenticatedAdminMapRoute,
+  AuthenticatedAdminVectorMetricsRoute: AuthenticatedAdminVectorMetricsRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
 }
 
@@ -258,18 +300,10 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   AuthRoute: AuthRoute,
+  PlaygroundRoute: PlaygroundRoute,
   ResultsRoute: ResultsRoute,
   ItemIdRoute: ItemIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}
