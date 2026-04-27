@@ -137,11 +137,12 @@ function AuthPage() {
             </form>
           </TabsContent>
         </Tabs>
-      </div>
+        </div>
 
-      <p className="text-center text-xs text-muted-foreground mt-6">
-        <Link to="/" className="hover:text-foreground">← Back to search</Link>
-      </p>
+        <p className="text-center text-xs text-muted-foreground mt-6">
+          <Link to="/" className="hover:text-foreground">← Back to search</Link>
+        </p>
+      </div>
     </div>
   );
 }
