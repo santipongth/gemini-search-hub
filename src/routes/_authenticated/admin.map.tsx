@@ -96,6 +96,16 @@ function MapPage() {
     return seen;
   }, [matches, adjacency]);
 
+  // Edges fully contained within the focused cluster.
+  const focusedEdgeCount = useMemo(() => {
+    if (focusedClusterIds.size === 0) return 0;
+    let n = 0;
+    for (const e of edges) {
+      if (focusedClusterIds.has(e.source) && focusedClusterIds.has(e.target)) n++;
+    }
+    return n;
+  }, [edges, focusedClusterIds]);
+
   const focusCluster = () => {
     if (focusedClusterIds.size === 0) {
       toast.error("No matching node to focus");
