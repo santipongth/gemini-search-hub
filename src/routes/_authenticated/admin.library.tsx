@@ -309,6 +309,7 @@ function AdminItemTile({
               src={`${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/library/${item.storage_path}`}
               seed={item.id}
             />
+          ) : (
             <div className="p-4 text-xs text-muted-foreground line-clamp-6">
               {item.title ?? item.text_content ?? item.modality}
             </div>
