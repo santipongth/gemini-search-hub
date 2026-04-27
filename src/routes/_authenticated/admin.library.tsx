@@ -226,7 +226,7 @@ function AdminLibraryPage() {
         <div className="sticky top-16 z-20 mb-4 rounded-xl border border-primary/40 bg-primary/5 backdrop-blur p-3 flex items-center gap-3">
           <span className="text-sm font-medium">{selected.size} selected</span>
           <Button size="sm" variant="outline" onClick={() => setSelected(new Set())}>Clear</Button>
-          <Button size="sm" variant="destructive" onClick={onBulkDelete} className="gap-2">
+          <Button size="sm" variant="destructive" onClick={() => setBulkConfirmOpen(true)} className="gap-2">
             <Trash2 className="h-4 w-4" /> Delete
           </Button>
         </div>
