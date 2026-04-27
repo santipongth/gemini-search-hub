@@ -24,32 +24,39 @@ export function UploadDialog({ onAdded }: { onAdded?: () => void }) {
   const [file, setFile] = useState<FilePayload | null>(null);
   const [busy, setBusy] = useState(false);
   const [serverFailures, setServerFailures] = useState<ValidationFailure[] | null>(null);
+  const [visibility, setVisibility] = useState<"public" | "private">("public");
+  const [duplicate, setDuplicate] = useState<{ id: string; title: string | null } | null>(null);
 
   const reset = () => {
     setTitle(""); setDesc(""); setText(""); setFile(null); setTab("text");
-    setServerFailures(null);
+    setServerFailures(null); setDuplicate(null); setVisibility("public");
   };
 
-  // Auto-reset server failures when the active file or tab changes so the
-  // user can retry the upload immediately without dismissing anything.
   useEffect(() => {
     setServerFailures(null);
-  }, [file?.data_url, tab]);
+    setDuplicate(null);
+  }, [file?.data_url, tab, text]);
 
-  const submit = async () => {
+  const doSubmit = async (allowDuplicate: boolean) => {
     setBusy(true);
     setServerFailures(null);
+    setDuplicate(null);
     try {
+      const base = {
+        title: title || undefined,
+        description: desc || undefined,
+        visibility,
+        allow_duplicate: allowDuplicate,
+      };
       if (tab === "text") {
         if (!text.trim()) throw new Error("Enter some text");
-        await addItem({ data: { modality: "text", title: title || undefined, description: desc || undefined, text_content: text } });
+        await addItem({ data: { ...base, modality: "text", text_content: text } });
       } else {
         if (!file) throw new Error("Select a file");
         await addItem({
           data: {
+            ...base,
             modality: tab as "image" | "audio",
-            title: title || undefined,
-            description: desc || undefined,
             data_url: file.data_url,
             mime_type: file.mime_type,
             filename: file.filename,
@@ -62,25 +69,41 @@ export function UploadDialog({ onAdded }: { onAdded?: () => void }) {
       setOpen(false);
       onAdded?.();
     } catch (e) {
-      let parsed: ValidationFailure[] | null = null;
+      // Try to parse structured error payloads.
       if (e instanceof Error) {
         try {
           const obj: unknown = JSON.parse(e.message);
-          if (isValidationErrorPayload(obj)) parsed = obj.failures;
+          if (isValidationErrorPayload(obj)) {
+            setServerFailures(obj.failures);
+            toast.error("File rejected — see details below");
+            return;
+          }
+          if (
+            obj && typeof obj === "object" && "code" in obj &&
+            (obj as { code: string }).code === "DUPLICATE_ITEM"
+          ) {
+            const d = obj as { existing_id: string; existing_title: string | null };
+            setDuplicate({ id: d.existing_id, title: d.existing_title });
+            toast.warning("Duplicate detected");
+            return;
+          }
         } catch {
           // not JSON
         }
       }
-      if (parsed) {
-        setServerFailures(parsed);
-        toast.error("File rejected — see details below");
+      const msg = e instanceof Error ? e.message : "Failed to add";
+      if (msg.includes("Unauthorized")) {
+        toast.error("Please sign in to upload");
       } else {
-        toast.error(e instanceof Error ? e.message : "Failed to add");
+        toast.error(msg);
       }
     } finally {
       setBusy(false);
     }
   };
+
+  const submit = () => doSubmit(false);
+  const submitForce = () => doSubmit(true);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
