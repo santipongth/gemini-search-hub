@@ -401,22 +401,27 @@ export const updateItem = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertCanMutate(data.id, context.userId);
 
-    const patch: Record<string, unknown> = {};
+    const patch: {
+      title?: string | null;
+      description?: string | null;
+      visibility?: "public" | "private";
+      search_text?: string;
+    } = {};
     if (data.title !== undefined) patch.title = data.title;
     if (data.description !== undefined) patch.description = data.description;
     if (data.visibility !== undefined) patch.visibility = data.visibility;
 
     // If title or description changed, recompute search_text.
-    if ("title" in patch || "description" in patch) {
+    if (patch.title !== undefined || patch.description !== undefined) {
       const { data: row } = await supabaseAdmin
         .from("items")
         .select("title, description, text_content")
         .eq("id", data.id)
         .single();
       if (row) {
-        const title = "title" in patch ? (patch.title as string | null) : row.title;
+        const title = patch.title !== undefined ? patch.title : row.title;
         const description =
-          "description" in patch ? (patch.description as string | null) : row.description;
+          patch.description !== undefined ? patch.description : row.description;
         patch.search_text = [title, description, row.text_content]
           .filter(Boolean)
           .join("\n");
