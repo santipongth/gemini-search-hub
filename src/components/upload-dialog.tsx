@@ -183,6 +183,36 @@ export function UploadDialog({ onAdded }: { onAdded?: () => void }) {
           </div>
         </Tabs>
 
+        <div className="flex items-center gap-3 pt-1">
+          <Label className="text-sm">Visibility</Label>
+          <div className="inline-flex rounded-md border border-border p-0.5 text-xs">
+            <button
+              type="button"
+              onClick={() => setVisibility("public")}
+              className={`px-3 py-1 rounded ${visibility === "public" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
+            >Public</button>
+            <button
+              type="button"
+              onClick={() => setVisibility("private")}
+              className={`px-3 py-1 rounded ${visibility === "private" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
+            >Private</button>
+          </div>
+        </div>
+
+        {duplicate && (
+          <div className="mt-3 rounded-xl border border-amber-500/40 bg-amber-500/5 p-3 text-sm">
+            <div className="font-medium text-amber-700 mb-1">Duplicate detected</div>
+            <div className="text-muted-foreground text-xs">
+              An identical item already exists in your library
+              {duplicate.title ? <>: <span className="font-medium text-foreground">{duplicate.title}</span></> : null}.
+            </div>
+            <div className="mt-2 flex gap-2">
+              <Button size="sm" variant="outline" onClick={() => setDuplicate(null)}>Cancel</Button>
+              <Button size="sm" onClick={submitForce} disabled={busy}>Upload anyway</Button>
+            </div>
+          </div>
+        )}
+
         {serverFailures && serverFailures.length > 0 && (
           <div className="mt-4 rounded-xl border border-destructive/40 bg-destructive/5 p-3 text-sm">
             <div className="flex items-center gap-2 font-medium text-destructive">
@@ -207,7 +237,7 @@ export function UploadDialog({ onAdded }: { onAdded?: () => void }) {
           </div>
         )}
 
-        <Button onClick={submit} disabled={busy} className="mt-4 gap-2">
+        <Button onClick={submit} disabled={busy || !!duplicate} className="mt-4 gap-2">
           {busy && <Loader2 className="h-4 w-4 animate-spin" />}
           {busy ? "Embedding..." : "Add to library"}
         </Button>
