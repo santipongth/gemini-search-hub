@@ -17,6 +17,7 @@ import {
 import { toast } from "sonner";
 import { extractTerms, highlightText } from "@/lib/highlight";
 import { WhyItMatched } from "@/components/why-it-matched";
+import { useAuth } from "@/hooks/use-auth";
 
 const ItemSearch = z.object({
   q: z.string().optional(),
@@ -40,8 +41,16 @@ function ItemPage() {
   const { item } = Route.useLoaderData() as { item: ItemSummary };
   const search = Route.useSearch();
   const router = useRouter();
+  const { isAdmin } = useAuth();
   const [similar, setSimilar] = useState<ItemSummary[] | null>(null);
   const [busy, setBusy] = useState(false);
+
+  const hasSearchQuery = !!(search.q && search.q.trim().length > 0);
+  const backTo = hasSearchQuery ? "/results" : "/";
+  const backLabel = hasSearchQuery ? "Back to search results" : "Back to library";
+  const backSearch = hasSearchQuery
+    ? { q: search.q!, qt: search.qt ?? "text" }
+    : undefined;
 
   const url = publicUrl(item.storage_path);
   const queryTerms = extractTerms(search.q);
@@ -72,8 +81,12 @@ function ItemPage() {
 
   return (
     <div className="container mx-auto px-6 py-10 max-w-4xl">
-      <Link to="/" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6">
-        <ArrowLeft className="h-4 w-4" /> Back to library
+      <Link
+        to={backTo}
+        search={backSearch as never}
+        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6"
+      >
+        <ArrowLeft className="h-4 w-4" /> {backLabel}
       </Link>
 
       <div className="rounded-2xl border border-border bg-card overflow-hidden">
@@ -138,9 +151,11 @@ function ItemPage() {
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
               Find similar
             </Button>
-            <Button onClick={onDelete} variant="outline" className="gap-2">
-              <Trash2 className="h-4 w-4" /> Delete
-            </Button>
+            {isAdmin && (
+              <Button onClick={onDelete} variant="outline" className="gap-2">
+                <Trash2 className="h-4 w-4" /> Delete
+              </Button>
+            )}
           </div>
         </div>
       </div>
