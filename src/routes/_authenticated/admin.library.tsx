@@ -253,7 +253,7 @@ function AdminLibraryPage() {
       )}
 
       {editing && (
-        <EditItemDialog
+        <EditItemDialogComp
           item={editing}
           onClose={() => setEditing(null)}
           onSaved={() => { setEditing(null); reload(); router.invalidate(); }}
