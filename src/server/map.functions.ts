@@ -55,7 +55,8 @@ export const getSimilarityMap = createServerFn({ method: "POST" })
 
     let q = supabaseAdmin
       .from("items")
-      .select("id, modality, title, search_text, owner_id")
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .select("id, modality, title, search_text, owner_id, embedding" as any)
       .order("created_at", { ascending: false })
       .limit(data.limit);
 
@@ -66,10 +67,36 @@ export const getSimilarityMap = createServerFn({ method: "POST" })
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
 
-    const items = rows ?? [];
+    type Row = {
+      id: string;
+      modality: string;
+      title: string | null;
+      search_text: string | null;
+      owner_id: string | null;
+      embedding: number[] | string | null;
+    };
+    const items = ((rows ?? []) as unknown) as Row[];
     if (items.length === 0) {
       return { nodes: [] as MapNode[], edges: [] as MapEdge[] };
     }
+
+    // Parse embeddings (pgvector returns string like "[0.1,0.2,...]" or array).
+    const embeddings: (number[] | null)[] = items.map((it) => {
+      const e = it.embedding;
+      if (!e) return null;
+      if (Array.isArray(e)) return e as number[];
+      if (typeof e === "string") {
+        try {
+          const parsed = JSON.parse(e);
+          return Array.isArray(parsed) ? parsed : null;
+        } catch {
+          return null;
+        }
+      }
+      return null;
+    });
+
+    const hasAnyEmbedding = embeddings.some((e) => e !== null);
 
     // Build token sets per item.
     const tokenSets = items.map((it) => new Set(tokenize(it.search_text ?? "")));
