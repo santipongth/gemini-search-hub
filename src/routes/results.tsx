@@ -37,6 +37,7 @@ function ResultsPage() {
   const [interpreted, setInterpreted] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const searchEventIdRef = useRef<string | null>(null);
+  const [lightboxId, setLightboxId] = useState<string | null>(null);
 
   useEffect(() => {
     setText(search.q);
