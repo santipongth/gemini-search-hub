@@ -298,9 +298,9 @@ export const findSimilar = createServerFn({ method: "POST" })
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const existingEmb = (item as any).embedding as number[] | string | null;
     if (existingEmb) {
-      const { data: rows, error: e2 } = await supabaseAdmin.rpc("match_items_vec", {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        query_embedding: existingEmb as any,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: rows, error: e2 } = await (supabaseAdmin.rpc as any)("match_items_vec", {
+        query_embedding: existingEmb,
         match_count: data.limit + 1,
         modality_filter: undefined,
         min_similarity: 0,
