@@ -265,7 +265,7 @@ export const searchItems = createServerFn({ method: "POST" })
         min_similarity: data.min_similarity,
       });
       if (error) throw new Error(error.message);
-      results = rows ?? [];
+      results = (rows ?? []) as SearchRow[];
       usedVector = true;
     } catch (e) {
       console.warn("Vector search failed, falling back to lexical:", e);
@@ -276,7 +276,7 @@ export const searchItems = createServerFn({ method: "POST" })
         min_similarity: data.min_similarity,
       });
       if (error) throw new Error(error.message);
-      results = rows ?? [];
+      results = (rows ?? []) as SearchRow[];
     }
 
     return { results, interpreted_query: queryText, used_vector: usedVector };
